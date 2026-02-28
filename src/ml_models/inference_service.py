@@ -236,9 +236,7 @@ class InferenceService:
         result: Dict[str, Any] = {
             "scored_at": datetime.utcnow().isoformat(),
             "feature_columns": FEATURE_COLUMNS,
-            "input_features": {
-                col: features.get(col, 0.0) for col in FEATURE_COLUMNS
-            },
+            "input_features": {col: features.get(col, 0.0) for col in FEATURE_COLUMNS},
         }
 
         if self.growth_model is not None:

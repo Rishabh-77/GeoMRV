@@ -27,7 +27,6 @@ from fastapi.testclient import TestClient
 from src.ml_models.data_preparation import FEATURE_COLUMNS, LABEL_NAMES
 from src.ml_models.inference_service import InferenceService
 
-
 # ────────────────────────────────────────────────────────────
 # Sample data
 # ────────────────────────────────────────────────────────────
