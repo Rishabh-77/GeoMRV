@@ -87,7 +87,9 @@ class TimelapseExporter:
             cursor_str = cursor.strftime("%Y-%m-%d")
 
             composite = (
-                collection.filterDate(cursor_str, window_end_str).median().clip(geometry)
+                collection.filterDate(cursor_str, window_end_str)
+                .median()
+                .clip(geometry)
             )
             # Attach a label for annotation
             composite = composite.set("label", cursor_str)
@@ -193,6 +195,7 @@ class TimelapseExporter:
         except Exception:
             # Fallback: try the legacy imageio writer
             import imageio
+
             writer = imageio.get_writer(output_path, fps=fps)
             for f in frames:
                 writer.append_data(f)

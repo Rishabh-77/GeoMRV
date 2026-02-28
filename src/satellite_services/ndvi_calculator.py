@@ -129,9 +129,7 @@ class NDVICalculator:
 
             cloud_pct = image.get("CLOUDY_PIXEL_PERCENTAGE").getInfo()
             obs_date = (
-                ee.Date(image.get("system:time_start"))
-                .format("YYYY-MM-dd")
-                .getInfo()
+                ee.Date(image.get("system:time_start")).format("YYYY-MM-dd").getInfo()
             )
 
             rows.append(
@@ -195,14 +193,12 @@ class NDVICalculator:
             pwd = os.getenv("POSTGRES_PASSWORD")
             sslmode = os.getenv("POSTGRES_SSLMODE", "require")
             connection_string = (
-                f"postgresql://{user}:{pwd}@{host}:{port}/{db}"
-                f"?sslmode={sslmode}"
+                f"postgresql://{user}:{pwd}@{host}:{port}/{db}" f"?sslmode={sslmode}"
             )
 
         engine = create_engine(connection_string)
 
-        insert_sql = text(
-            """
+        insert_sql = text("""
             INSERT INTO observations
                 (project_id, observation_date, ndvi, ndvi_std, ndvi_count,
                  evi, data_source, cloud_cover_percent)
@@ -210,8 +206,7 @@ class NDVICalculator:
                 (:project_id, :obs_date, :ndvi, :ndvi_std, :ndvi_count,
                  :evi, :data_source, :cloud_cover)
             ON CONFLICT DO NOTHING
-            """
-        )
+            """)
 
         inserted = 0
         with engine.begin() as conn:
@@ -231,5 +226,7 @@ class NDVICalculator:
                 )
                 inserted += 1
 
-        logger.info("Inserted %d rows into 'observations' for project %s", inserted, project_id)
+        logger.info(
+            "Inserted %d rows into 'observations' for project %s", inserted, project_id
+        )
         return inserted

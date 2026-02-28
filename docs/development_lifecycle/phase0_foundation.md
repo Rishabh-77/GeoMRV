@@ -432,7 +432,7 @@ def fetch_ndvi_timeseries(geometry, start_date, end_date):
      5. Run unit tests (pytest)
      6. Generate coverage report
      7. (Later) Deploy to Azure if tests pass
-
+check
 4. **Set Up Secrets in GitHub**
    - Go to Settings → Secrets and variables
    - Add:
