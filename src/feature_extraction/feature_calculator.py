@@ -254,6 +254,17 @@ class PipelineFeatureExtractor:
 
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _max_gap_days(df: pd.DataFrame) -> int:
+        """Return the largest gap (in days) between consecutive observations."""
+        if len(df) < 2:
+            return 0
+        dates = pd.to_datetime(df["date"]).sort_values()
+        gaps = dates.diff().dropna()
+        return int(gaps.max().days) if len(gaps) > 0 else 0
+
+    # ------------------------------------------------------------------
+
     def extract_features(
         self,
         project_id: str,
@@ -328,6 +339,7 @@ class PipelineFeatureExtractor:
             "total_observations": total_obs,
             "clear_observations": len(df),
             "cloud_cover_threshold": self.MAX_CLOUD_COVER,
+            "max_observation_gap_days": self._max_gap_days(df),
             "extracted_at": datetime.utcnow().isoformat(),
             "trend": self.calculator.calculate_trend(df),
             "seasonality": self.calculator.calculate_seasonality(df),

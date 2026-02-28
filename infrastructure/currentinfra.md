@@ -47,7 +47,8 @@ GeoMRV/
 │   │   │   ├── projects.py
 │   │   │   ├── jobs.py
 │   │   │   ├── evidence.py
-│   │   │   └── features.py              # Task 1.4
+│   │   │   ├── features.py              # Task 1.4
+│   │   │   └── verification.py          # Task 1.5
 │   │   ├── services/
 │   │   │   ├── __init__.py
 │   │   │   ├── project_service.py
@@ -59,6 +60,10 @@ GeoMRV/
 │   │   ├── __init__.py
 │   │   ├── feature_calculator.py
 │   │   └── feature_store.py
+│   ├── verification_rules/               # Task 1.5
+│   │   ├── __init__.py
+│   │   ├── rules_engine.py
+│   │   └── rule_store.py
 │   └── satellite_services/               # Phase 0 + Task 1.3
 │       ├── __init__.py
 │       ├── data_fetcher.py
@@ -127,7 +132,8 @@ geomrv/
    │   ├── projects.py            ✅
    │   ├── jobs.py                ✅
    │   ├── evidence.py            ✅
-   │   └── features.py            ✅  (Task 1.4 addition)
+   │   ├── features.py            ✅  (Task 1.4 addition)
+   │   └── verification.py        ✅  (Task 1.5 addition)
    ├── services/
    │   ├── project_service.py     ✅
    │   ├── job_service.py         ✅
@@ -143,6 +149,14 @@ geomrv/
    ├── feature_calculator.py      # FeatureCalculator + PipelineFeatureExtractor
    └── feature_store.py           # FeatureStore (read/write via processing_logs)
    ```
+
+3. **Verification Rules module** (✅ Task 1.5)
+   ```
+   src/verification_rules/
+   ├── __init__.py
+   ├── rules_engine.py      # VerificationRulesEngine (7 rules + confidence scoring)
+   └── rule_store.py         # RuleStore (read/write via processing_logs)
+   ```
 ## Alignment summary
 
 Already present (✅):
@@ -152,11 +166,11 @@ Already present (✅):
 - `src/satellite_services/*` (Phase 0 + Task 1.3)
 - `src/api/*` (Tasks 1.1 – 1.3)
 - `src/feature_extraction/*` (Task 1.4)
-- `tests/` (test_setup, test_projects, test_jobs, test_satellite_fetcher)
+- `src/verification_rules/*` (Task 1.5)
+- `tests/` (test_setup, test_projects, test_jobs, test_satellite_fetcher, test_verification_rules)
 - `.env.example`, `.gitignore`, `requirements.txt`
 
-Not created yet (⏳) — add when starting Task 1.5 / Phase 2+:
-- `src/verification_rules/` ← Task 1.5
+Not created yet (⏳) — add when starting Phase 2+:
 - `src/ml_models/` ← Phase 2
 - `src/evidence_generation/` ← Phase 3
 - `database/migrations/001_initial_schema.sql`
@@ -165,6 +179,6 @@ Not created yet (⏳) — add when starting Task 1.5 / Phase 2+:
 
 ## What to create next (recommended order)
 
-1. Verification rules engine: `src/verification_rules/` (Task 1.5)
+1. ML scoring layer: `src/ml_models/` (Phase 2)
 2. Database docs + migrations: `database/README.md` and `database/migrations/`
-3. ML scoring layer: `src/ml_models/` (Phase 2)
+3. Evidence generation: `src/evidence_generation/` (Phase 3)

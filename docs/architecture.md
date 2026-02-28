@@ -191,11 +191,43 @@ Responsibilities:
 * apply area and geometry consistency checks
 * enforce data quality thresholds
 
+Rules implemented (Task 1.5):
+
+* R1 – Insufficient Observations (< 12 clear scenes → MEDIUM)
+* R2 – High Cloud Cover (> 40 % rejection rate → MEDIUM)
+* R3 – No Growth Detected (trend slope ≤ 0 → HIGH)
+* R4 – Anomalous Values (≥ 1 anomalous date → MEDIUM)
+* R5 – Vegetation Loss (NDVI swing > 0.5 with min < 0.2 and max > 0.7 → CRITICAL)
+* R6 – Data Gap (> 60 days between observations → MEDIUM)
+* R7 – Low Trend Confidence (R² < 0.3 → MEDIUM)
+
+Confidence scoring:
+
+* Starts at 100, deducts per-flag penalties and data quality adjustments
+* Overall status: PASS (≥ 70), REVIEW_REQUIRED (40–69), FAIL (< 40)
+
 Outputs:
 
 * pass
 * review
 * fail
+
+Components:
+
+* `VerificationRulesEngine` – stateless rule evaluator + confidence scoring
+* `RuleStore` – read/write verification results to `processing_logs` table
+
+Location:
+
+* `src/verification_rules/rules_engine.py`
+* `src/verification_rules/rule_store.py`
+* `src/api/routers/verification.py`
+
+API Endpoints:
+
+* `POST /api/v1/verification/{project_id}/verify` – run verification
+* `GET  /api/v1/verification/{project_id}/latest` – get last result
+* `GET  /api/v1/verification/{project_id}/history` – list all runs
 
 This layer is independent of the ML model.
 
