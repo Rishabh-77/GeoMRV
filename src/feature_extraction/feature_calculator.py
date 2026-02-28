@@ -80,7 +80,9 @@ class FeatureCalculator:
 
         # Annualise: assume ~12 observations/year for Sentinel-2 monthly composites
         # Adjust if your cadence differs.
-        obs_per_year = max(len(df) / max((df["date"].max() - df["date"].min()).days / 365.25, 0.01), 1)
+        obs_per_year = max(
+            len(df) / max((df["date"].max() - df["date"].min()).days / 365.25, 0.01), 1
+        )
         slope_per_year = slope * obs_per_year
 
         return {
@@ -157,7 +159,10 @@ class FeatureCalculator:
         anomalies = np.abs(df["ndvi"] - ndvi_mean) > (std_threshold * ndvi_std)
         anomalies = anomalies.fillna(False)
 
-        return [str(d.date()) if hasattr(d, "date") else str(d) for d in df.loc[anomalies, "date"]]
+        return [
+            str(d.date()) if hasattr(d, "date") else str(d)
+            for d in df.loc[anomalies, "date"]
+        ]
 
     # ── Growth Period ─────────────────────────────────────────
 
@@ -206,9 +211,9 @@ class FeatureCalculator:
 
         Formula:  ``biomass = a × NDVI + b × EVI + c``
         """
-        a = 50.0   # NDVI weight
-        b = 30.0   # EVI weight
-        c = 5.0    # intercept
+        a = 50.0  # NDVI weight
+        b = 30.0  # EVI weight
+        c = 5.0  # intercept
 
         evi_value = evi if evi is not None else 0.0
         biomass = a * ndvi + b * evi_value + c

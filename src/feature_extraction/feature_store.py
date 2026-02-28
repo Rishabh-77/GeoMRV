@@ -72,9 +72,7 @@ class FeatureStore:
         self.db.commit()
         self.db.refresh(log)
 
-        logger.info(
-            "Saved features for project %s (log id=%s)", project_id, log.id
-        )
+        logger.info("Saved features for project %s (log id=%s)", project_id, log.id)
         return log
 
     # ── read ──────────────────────────────────────────────────
