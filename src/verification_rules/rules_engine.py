@@ -230,9 +230,7 @@ class VerificationRulesEngine:
                     rule_id="R3_no_growth_detected",
                     rule_name="No Growth Detected",
                     risk_level=RiskLevel.HIGH,
-                    description=(
-                        f"Trend slope: {slope:.6f} (threshold: > 0)"
-                    ),
+                    description=(f"Trend slope: {slope:.6f} (threshold: > 0)"),
                     affected_period=period,
                     recommended_action=(
                         "Investigate ground conditions or verify project implementation"
