@@ -76,6 +76,32 @@ geomrv/
 └── README.md
 ```
 
+
+1. **Intended Structure from phase 1**
+   ```
+   src/api/
+   ├── main.py
+   ├── config.py
+   ├── schemas.py
+   ├── models.py
+   ├── database.py
+   ├── routers/
+   │   ├── projects.py
+   │   ├── jobs.py
+   │   └── evidence.py
+   ├── services/
+   │   ├── project_service.py
+   │   ├── job_service.py
+   │   └── evidence_service.py
+   ├── utils/
+   │   ├── logger.py
+   │   ├── validators.py
+   │   └── exceptions.py
+   └── tests/
+       ├── test_projects.py
+       ├── test_jobs.py
+       └── test_integration.py
+   ```
 ## Alignment summary
 
 Already present (✅):
