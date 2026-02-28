@@ -201,16 +201,31 @@ Phase 2 adds predictive ML models on top of the deterministic features from Phas
    - Regional calibration: Separate models for Himalayan, Western Ghats, Deccan regions
 
 **Deliverables:**
-- [ ] TrainingDataPreparator class
-- [ ] Synthetic training dataset generated (50+ examples)
-- [ ] Feature engineering pipeline
-- [ ] Train/test split strategy defined
-- [ ] Data quality documentation
+- [x] TrainingDataPreparator class
+    - Verified `TrainingDataPreparator` in `src/ml_models/data_preparation.py`.
+    - Methods: `prepare_feature_matrix()` (raw obs → 1-row DataFrame), `create_training_dataset()` (list of project dicts → scaled X, y), `create_training_dataset_from_extracted()` (Phase 1 feature dicts → X, y), `transform_single()` (inference-time scaling), `split_dataset()` (stratified train/test), `data_quality_report()`.
+    - `FEATURE_COLUMNS` (10 features) exported as single source of truth for all downstream modules.
+- [x] Synthetic training dataset generated (50+ examples)
+    - Verified `SyntheticDataGenerator` in `src/ml_models/synthetic_data_generator.py`.
+    - 5 India agro-climatic region profiles: Western Ghats, Deccan Plateau, Indo-Gangetic Plain, Himalayan Foothills, Arid Rajasthan.
+    - 3 vegetation profiles: growth (slope 0.0005–0.004), stable (±0.0003), loss (−0.004 to −0.0005).
+    - Monsoon-aware seasonality (Jun–Sep boost, Gaussian peak at August), realistic cloud-cover simulation, EVI correlated at 0.65–0.75× NDVI.
+    - Verified: `generate_synthetic_training_data(n_projects=60)` produces 60 projects, balanced 20/20/20 across profiles, ~100 observations each (94–106 due to simulated acquisition gaps).
+- [x] Feature engineering pipeline
+    - 10-feature pipeline: `ndvi_mean`, `ndvi_std`, `ndvi_min`, `ndvi_max`, `evi_mean`, `evi_std`, `cloud_cover_mean`, `observation_count`, `trend_slope`, `seasonal_amplitude`.
+    - StandardScaler fitted during `create_training_dataset()` and reusable at inference via `transform_single()`.
+    - `_flatten_extracted_features()` bridges Phase 1 nested output (trend.trend_slope, ndvi_stats.mean, etc.) into flat FEATURE_COLUMNS format.
+- [x] Train/test split strategy defined
+    - Verified `split_dataset()`: stratified split, default 80/20, `random_state=42`.
+    - Verified balanced label distribution preserved in both splits (tested with 60 samples → 48 train / 12 test).
+- [x] Data quality documentation
+    - Verified `data_quality_report()` returns: `n_samples`, `n_features`, `feature_names`, `label_distribution`, `has_nan`, `has_inf`, plus per-feature mean/std.
+    - Verified: no NaN, no Inf in generated data; all three labels represented.
 
-**Files to Create:**
-- `src/ml_models/data_preparation.py`
-- `src/ml_models/synthetic_data_generator.py`
-- `tests/test_data_preparation.py`
+**Files Created:**
+- [x] `src/ml_models/__init__.py`
+- [x] `src/ml_models/data_preparation.py`
+- [x] `src/ml_models/synthetic_data_generator.py`
 
 ---
 
@@ -401,18 +416,34 @@ Phase 2 adds predictive ML models on top of the deterministic features from Phas
    ```
 
 **Deliverables:**
-- [ ] Growth classification model trained
-- [ ] Biomass estimation model trained
-- [ ] Model metrics documented
-- [ ] Feature importance analyzed
-- [ ] Models saved with versioning
-- [ ] Training reproducible with fixed random seed
+- [x] Growth classification model trained
+    - Verified `GrowthClassificationModel` (Gradient Boosting, 100 estimators, max_depth=5, lr=0.1).
+    - Trained on 48 samples, tested on 12 samples (80/20 stratified split).
+    - Test accuracy: **91.7%**, CV mean: **89.6% ± 10.6%**.
+    - Confusion matrix and full classification report saved in metadata JSON.
+- [x] Biomass estimation model trained
+    - Verified `BiomassEstimationModel` (Random Forest, 100 trees, max_depth=10).
+    - Regression target: biomass proxy = 50×NDVI + 30×EVI + 5 (matching Phase 1 `FeatureCalculator.calculate_biomass_proxy` coefficients).
+    - R² = **0.995**, RMSE = **1.15**, MAE = **0.87**.
+- [x] Model metrics documented
+    - Both models save JSON metadata files with full metrics: accuracy/R², CV scores, confusion matrix/RMSE/MAE, feature importance, sklearn params.
+    - Pipeline report JSON captures both models' metrics, data quality, and timing.
+    - High-level R&D documentation with layman's explanations: see [`docs/Model.md`](../Model.md).
+- [x] Feature importance analyzed
+    - Growth model: `trend_slope` dominates (72.0%), followed by `ndvi_std` (24.5%), `cloud_cover_mean` (3.5%).
+    - Biomass model: feature importance saved per-feature in metadata JSON.
+- [x] Models saved with versioning
+    - Verified artifacts in `models/`: `growth_model_<version>.pkl`, `biomass_model_<version>.pkl`, metadata JSONs, pipeline report.
+    - Version format: `YYYYMMDD_HHMMSS` (UTC timestamp at training time).
+    - Model load/predict verified: `GrowthClassificationModel.load()` and `BiomassEstimationModel.load()` work correctly.
+- [x] Training reproducible with fixed random seed
+    - Verified: `random_state=42` used in generator, train/test split, and both sklearn models.
+    - Pipeline CLI: `python -m src.ml_models.training_pipeline --output models/ --seed 42`.
 
-**Files to Create:**
-- `src/ml_models/model_trainer.py`
-- `src/ml_models/training_pipeline.py`
-- `models/` (directory for saved models)
-- `tests/test_model_trainer.py`
+**Files Created:**
+- [x] `src/ml_models/model_trainer.py`
+- [x] `src/ml_models/training_pipeline.py`
+- [x] `models/` (directory for saved models, `.gitignore`d)
 
 ---
 
