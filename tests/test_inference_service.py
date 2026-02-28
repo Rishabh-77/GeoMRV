@@ -18,7 +18,9 @@ import os
 import tempfile
 from pathlib import Path
 from copy import deepcopy
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 import numpy as np
 import pytest
@@ -337,6 +339,7 @@ class TestFeaturesArray:
 
 from src.api.main import app
 from src.api.routers.ml_scoring import get_inference_service
+from src.api.database import get_db
 
 client = TestClient(app)
 
@@ -445,3 +448,91 @@ class TestMLScoringAPINoModels:
             assert data["models_loaded"] is False
         finally:
             app.dependency_overrides.pop(get_inference_service, None)
+
+
+class TestMLScoringAPIIntegratedWorkflow:
+    """POST /api/v1/ml/score-and-verify/{project_id}"""
+
+    def test_score_and_verify_success(self, model_dir):
+        svc = InferenceService(model_dir=model_dir, auto_load=True)
+
+        project_id = str(uuid4())
+        fake_db = MagicMock()
+        fake_db.get.return_value = SimpleNamespace(id=project_id)
+        fake_db.add.return_value = None
+        fake_db.commit.return_value = None
+        fake_db.refresh.side_effect = lambda obj: None
+
+        class FakeFlag:
+            def to_dict(self):
+                return {
+                    "rule_id": "R1_insufficient_data",
+                    "risk_level": "medium",
+                }
+
+        fake_verification_log = SimpleNamespace(id=uuid4())
+
+        app.dependency_overrides[get_inference_service] = lambda: svc
+        app.dependency_overrides[get_db] = lambda: fake_db
+        try:
+            with patch(
+                "src.api.routers.ml_scoring.PipelineFeatureExtractor.extract_features",
+                return_value=SAMPLE_PHASE1_FEATURES,
+            ), patch(
+                "src.api.routers.ml_scoring.VerificationRulesEngine.verify",
+                return_value=[FakeFlag()],
+            ), patch(
+                "src.api.routers.ml_scoring.VerificationRulesEngine.get_confidence_score",
+                return_value=82.5,
+            ), patch(
+                "src.api.routers.ml_scoring.VerificationRulesEngine.get_overall_status",
+                return_value="PASS",
+            ), patch(
+                "src.api.routers.ml_scoring.RuleStore.save_verification_results",
+                return_value=fake_verification_log,
+            ):
+                resp = client.post(
+                    f"/api/v1/ml/score-and-verify/{project_id}?start_date=2025-01-01&end_date=2025-12-31"
+                )
+
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["project_id"] == project_id
+            assert "scoring_log_id" in data
+            assert data["verification_log_id"] == str(fake_verification_log.id)
+            assert data["ml_scoring"]["growth"]["prediction"] in (
+                "growth",
+                "stable",
+                "loss",
+            )
+            assert data["verification"]["overall_status"] == "PASS"
+            assert data["verification"]["flag_count"] == 1
+            assert "overall_assessment" in data
+        finally:
+            app.dependency_overrides.pop(get_inference_service, None)
+            app.dependency_overrides.pop(get_db, None)
+
+    def test_score_and_verify_feature_error(self, model_dir):
+        svc = InferenceService(model_dir=model_dir, auto_load=True)
+
+        project_id = str(uuid4())
+        fake_db = MagicMock()
+        fake_db.get.return_value = SimpleNamespace(id=project_id)
+
+        app.dependency_overrides[get_inference_service] = lambda: svc
+        app.dependency_overrides[get_db] = lambda: fake_db
+        try:
+            with patch(
+                "src.api.routers.ml_scoring.PipelineFeatureExtractor.extract_features",
+                return_value={"error": "insufficient_observations"},
+            ):
+                resp = client.post(
+                    f"/api/v1/ml/score-and-verify/{project_id}?start_date=2025-01-01&end_date=2025-12-31"
+                )
+
+            assert resp.status_code == 422
+            body = resp.json()
+            assert body["detail"]["code"] == "insufficient_observations"
+        finally:
+            app.dependency_overrides.pop(get_inference_service, None)
+            app.dependency_overrides.pop(get_db, None)

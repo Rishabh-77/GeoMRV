@@ -30,6 +30,8 @@ from src.api.models import Job, Project
 from src.feature_extraction.feature_calculator import PipelineFeatureExtractor
 from src.feature_extraction.feature_store import FeatureStore
 from src.ml_models.inference_service import InferenceService
+from src.verification_rules.rule_store import RuleStore
+from src.verification_rules.rules_engine import VerificationRulesEngine
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +113,17 @@ class ModelStatusResponse(BaseModel):
     growth_model: Dict[str, Any]
     biomass_model: Dict[str, Any]
     feature_columns: list[str]
+
+
+class IntegratedScoreVerifyResponse(BaseModel):
+    project_id: str
+    scoring_log_id: str
+    verification_log_id: str
+    start_date: str
+    end_date: str
+    ml_scoring: Dict[str, Any]
+    verification: Dict[str, Any]
+    overall_assessment: Dict[str, Any]
 
 
 # ──────────────────────────────────────────────────────────────
@@ -309,4 +322,121 @@ def list_scoring_history(
         "project_id": str(project_id),
         "count": len(history),
         "history": history,
+    }
+
+
+@router.post(
+    "/score-and-verify/{project_id}", response_model=IntegratedScoreVerifyResponse
+)
+def score_and_verify_project(
+    project_id: UUID,
+    start_date: str = Query(..., description="Start date (YYYY-MM-DD)"),
+    end_date: str = Query(..., description="End date (YYYY-MM-DD)"),
+    db: Session = Depends(get_db),
+    svc: InferenceService = Depends(get_inference_service),
+) -> dict:
+    """Run ML scoring and deterministic verification in one workflow.
+
+    Workflow:
+    1. Extract features for the project period.
+    2. Run ML scoring from flattened features.
+    3. Run verification rules on extracted features.
+    4. Persist both outputs to processing logs.
+    """
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if not svc._loaded:
+        raise HTTPException(
+            status_code=503,
+            detail="ML models are not loaded.  Run the training pipeline first.",
+        )
+
+    t0 = time.time()
+
+    extractor = PipelineFeatureExtractor(db)
+    raw_features = extractor.extract_features(
+        project_id=str(project_id),
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    if "error" in raw_features:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": raw_features["error"],
+                "message": f"Feature extraction failed: {raw_features['error']}",
+            },
+        )
+
+    # ML scoring
+    flat_features = svc.flatten_extracted_features(raw_features)
+    scoring_result = svc.score(flat_features)
+    ml_elapsed_ms = int((time.time() - t0) * 1000)
+
+    scoring_log = Job(
+        project_id=project_id,
+        operation_type=OPERATION_TYPE,
+        status="success",
+        input_data={
+            "start_date": start_date,
+            "end_date": end_date,
+            "features": flat_features,
+        },
+        output_data=scoring_result,
+        execution_time_ms=ml_elapsed_ms,
+    )
+    db.add(scoring_log)
+    db.commit()
+    db.refresh(scoring_log)
+
+    # Verification
+    engine = VerificationRulesEngine()
+    flags = engine.verify(raw_features)
+    verification_score = engine.get_confidence_score(raw_features, flags)
+    verification_status = engine.get_overall_status(verification_score)
+    verification_elapsed_ms = int((time.time() - t0) * 1000)
+
+    rule_store = RuleStore(db)
+    verification_log = rule_store.save_verification_results(
+        project_id=str(project_id),
+        flags=flags,
+        confidence_score=verification_score,
+        overall_status=verification_status,
+        features_input=raw_features,
+        execution_time_ms=verification_elapsed_ms,
+    )
+
+    ml_prediction = (scoring_result.get("growth") or {}).get("prediction")
+    ml_confidence = (scoring_result.get("growth") or {}).get("confidence")
+    overall_assessment = {
+        "ml_prediction": ml_prediction,
+        "ml_confidence": ml_confidence,
+        "verification_confidence": verification_score,
+        "verification_status": verification_status,
+        "flag_count": len(flags),
+        "is_consistent": bool(ml_prediction != "loss" or verification_status != "PASS"),
+    }
+
+    return {
+        "project_id": str(project_id),
+        "scoring_log_id": str(scoring_log.id),
+        "verification_log_id": str(verification_log.id),
+        "start_date": start_date,
+        "end_date": end_date,
+        "ml_scoring": {
+            "scored_at": scoring_result.get("scored_at"),
+            "growth": scoring_result.get("growth"),
+            "biomass": scoring_result.get("biomass"),
+            "total_inference_ms": scoring_result.get("total_inference_ms"),
+        },
+        "verification": {
+            "confidence_score": verification_score,
+            "overall_status": verification_status,
+            "flag_count": len(flags),
+            "flags": [f.to_dict() for f in flags],
+        },
+        "overall_assessment": overall_assessment,
     }

@@ -91,9 +91,13 @@ class InferenceService:
             logger.warning("Model directory does not exist: %s", self.model_dir)
             return status
 
+        # Prefer active versions from registry (if available), then
+        # gracefully fall back to latest files from model_dir.
+        status = self._load_active_models_from_registry()
+
         # ── Growth model ─────────────────────────────────────
         growth_files = sorted(self.model_dir.glob("growth_model_*.pkl"))
-        if growth_files:
+        if growth_files and not status["growth_loaded"]:
             latest = growth_files[-1]
             self.growth_model = GrowthClassificationModel()
             self.growth_model.load(str(latest))
@@ -109,7 +113,7 @@ class InferenceService:
 
         # ── Biomass model ────────────────────────────────────
         biomass_files = sorted(self.model_dir.glob("biomass_model_*.pkl"))
-        if biomass_files:
+        if biomass_files and not status["biomass_loaded"]:
             latest = biomass_files[-1]
             self.biomass_model = BiomassEstimationModel()
             self.biomass_model.load(str(latest))
@@ -327,3 +331,82 @@ class InferenceService:
             with open(meta_file) as f:
                 return json.load(f)
         return {}
+
+    def _load_active_models_from_registry(self) -> Dict[str, bool]:
+        """Try loading active model versions from model_registry.
+
+        Returns status dict; if registry is unavailable or empty, returns
+        both False and lets ``load_models`` fall back to local latest files.
+        """
+        status = {"growth_loaded": False, "biomass_loaded": False}
+
+        try:
+            from src.api.database import SessionLocal
+            from src.ml_models.registry_service import RegistryService
+
+            db = SessionLocal()
+            try:
+                registry = RegistryService(db)
+
+                growth_entry = registry.get_active_model(
+                    GrowthClassificationModel.MODEL_TYPE
+                )
+                if growth_entry and Path(growth_entry.model_path).exists():
+                    self.growth_model = GrowthClassificationModel()
+                    self.growth_model.load(str(growth_entry.model_path))
+
+                    if (
+                        growth_entry.metadata_path
+                        and Path(growth_entry.metadata_path).exists()
+                    ):
+                        with open(growth_entry.metadata_path) as f:
+                            self.growth_metadata = json.load(f)
+                    else:
+                        self.growth_metadata = self._load_metadata(
+                            Path(growth_entry.model_path),
+                            prefix="growth_model_",
+                            meta_prefix="growth_metadata_",
+                        )
+
+                    status["growth_loaded"] = True
+                    logger.info(
+                        "Growth model loaded from active registry: %s (v%s)",
+                        growth_entry.id,
+                        self.growth_metadata.get("version", "unknown"),
+                    )
+
+                biomass_entry = registry.get_active_model(
+                    BiomassEstimationModel.MODEL_TYPE
+                )
+                if biomass_entry and Path(biomass_entry.model_path).exists():
+                    self.biomass_model = BiomassEstimationModel()
+                    self.biomass_model.load(str(biomass_entry.model_path))
+
+                    if (
+                        biomass_entry.metadata_path
+                        and Path(biomass_entry.metadata_path).exists()
+                    ):
+                        with open(biomass_entry.metadata_path) as f:
+                            self.biomass_metadata = json.load(f)
+                    else:
+                        self.biomass_metadata = self._load_metadata(
+                            Path(biomass_entry.model_path),
+                            prefix="biomass_model_",
+                            meta_prefix="biomass_metadata_",
+                        )
+
+                    status["biomass_loaded"] = True
+                    logger.info(
+                        "Biomass model loaded from active registry: %s (v%s)",
+                        biomass_entry.id,
+                        self.biomass_metadata.get("version", "unknown"),
+                    )
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.info(
+                "Active model registry lookup unavailable; falling back to local files: %s",
+                exc,
+            )
+
+        return status

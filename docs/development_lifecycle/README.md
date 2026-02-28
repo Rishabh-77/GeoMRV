@@ -17,7 +17,7 @@ PHASE 1: Core Backend Engine (Weeks 3–6) [4 weeks]
     └─ API layer, Remote sensing fetcher, Feature extraction, Verification rules
 
 PHASE 2: ML Scoring Layer (Weeks 7–9) [3 weeks]
-    └─ Model training, Confidence scoring, Risk flagging
+    └─ Model training, Confidence scoring, Registry versioning, score+verify integration
 
 PHASE 3: Evidence & Audit Packaging (Weeks 10–11) [2 weeks]
     └─ PDF generation, Visualizations, Lineage tracking
@@ -44,7 +44,7 @@ development_lifecycle/
 ├── phase5_testing_launch.md           (Testing strategy, documentation, deployment)
 ├── azure_cost_estimation.md           (Budget breakdown & free tier strategy)
 ├── india_specific_enhancements.md     (Regional calibration, data sources)
-└── deployment_runbook.md              (Step-by-step production deployment)
+└── QUICK_REFERENCE.md                 (Execution summary & startup guide)
 ```
 
 ---
@@ -55,10 +55,10 @@ development_lifecycle/
 |-------|-------------|--------|
 | 0 | Working Azure environment, database schema, CI/CD pipeline | Foundation ready |
 | 1 | Functional backend API, satellite data ingestion, feature extraction | Core engine ready |
-| 2 | ML model pipeline, confidence scoring system | Predictions working |
+| 2 | ML model pipeline, confidence scoring, model registry, score+verify workflow | Predictions + verification working |
 | 3 | Audit-ready evidence packages with visualizations | Reports generated |
 | 4 | React web dashboard, project management interface | UI interactive |
-| 5 | Complete test suite, documentation, deployment runbook | Launch ready |
+| 5 | Complete test suite, documentation, deployment procedures | Launch ready |
 
 ---
 
@@ -76,13 +76,12 @@ development_lifecycle/
 
 - **[Phase 0: Foundation & Dependencies](phase0_foundation.md)** — Azure environment setup, database, CI/CD
 - **[Phase 1: Backend Engine](phase1_backend_engine.md)** — API, remote sensing, feature extraction
-- **[Phase 2: ML Scoring](phase2_ml_scoring.md)** — Models, confidence scoring, risk flags
+- **[Phase 2: ML Scoring](phase2_ml_scoring.md)** — Models, confidence scoring, risk flags, and score+verify integration
 - **[Phase 3: Evidence Packaging](phase3_evidence_packaging.md)** — PDF generation, audit lineage
 - **[Phase 4: Frontend & Integration](phase4_frontend_integration.md)** — Dashboard, UI, end-to-end testing
 - **[Phase 5: Testing & Launch](phase5_testing_launch.md)** — Quality assurance, documentation, deployment
 - **[Azure Cost Estimation](azure_cost_estimation.md)** — Budget & free tier strategy
 - **[India-Specific Enhancements](india_specific_enhancements.md)** — Regional calibration, data sources
-- **[Deployment Runbook](deployment_runbook.md)** — Production deployment steps
 
 ---
 
@@ -92,7 +91,7 @@ development_lifecycle/
 ✅ Evidence package generated and audit-ready  
 ✅ All processing steps fully traceable and reproducible  
 ✅ Backend and frontend deployed on Azure and accessible  
-✅ Documentation complete and deployment runbook validated  
+✅ Documentation complete and deployment procedures validated  
 ✅ Cost estimate < $200/month for single-project operation  
 
 ---
@@ -109,4 +108,4 @@ development_lifecycle/
 
 ---
 
-*Last Updated: Feb 27, 2026*
+*Last Updated: Mar 1, 2026*

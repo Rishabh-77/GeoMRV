@@ -2,7 +2,7 @@
 
 This is a Phase 1 deliverable draft. It defines the minimal API surfaces expected by frontend + ML pipelines.
 
-**Last updated:** 2026-02-28 (Task 1.5 – Verification Rules endpoints added)
+**Last updated:** 2026-02-28 (Task 2.4 – ML registry integration + score-and-verify endpoint)
 
 ## Conventions
 
@@ -75,6 +75,26 @@ This is a Phase 1 deliverable draft. It defines the minimal API surfaces expecte
 - `GET /api/v1/verification/{project_id}/history?limit=20`
   - List all verification runs for a project (newest first)
   - Returns: `{ project_id, count, history: [...] }`
+
+### ML Scoring ✅ (Tasks 2.3 – 2.4)
+- `POST /api/v1/ml/score/{project_id}?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
+  - Run feature extraction + ML scoring for a project period
+  - Persists result as `processing_logs` entry (`operation_type: ml_scoring`)
+  - Returns: `{ project_id, processing_log_id, scored_at, growth, biomass, input_features, total_inference_ms }`
+- `POST /api/v1/ml/score-features`
+  - Score a raw feature vector directly (no DB/project dependency)
+  - Returns: `{ scored_at, growth, biomass, input_features, total_inference_ms }`
+- `POST /api/v1/ml/score-and-verify/{project_id}?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
+  - Unified pipeline: feature extraction → ML scoring → deterministic verification
+  - Persists both scoring and verification results in processing logs
+  - Returns: `{ project_id, scoring_log_id, verification_log_id, ml_scoring, verification, overall_assessment }`
+- `GET /api/v1/ml/status`
+  - Returns loaded model + registry status
+  - Returns: `{ models_loaded, model_dir, growth_model, biomass_model, feature_columns }`
+- `GET /api/v1/ml/{project_id}/latest`
+  - Returns latest ML scoring run for project
+- `GET /api/v1/ml/{project_id}/history?limit=20`
+  - Returns ML scoring history for project
 
 ### Evidence Packages ✅ (scaffold)
 - `GET /api/v1/evidence`
