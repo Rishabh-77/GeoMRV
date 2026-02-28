@@ -24,6 +24,25 @@ This is the core engine phase. The backend must:
 
 ---
 
+## ✅ Prerequisites (Completed in Phase 0)
+
+Before starting Phase 1 implementation, confirm these Phase 0 foundations are already in place:
+
+- CI/CD is configured (GitHub Actions runs `flake8`, `black --check`, and `pytest`).
+- Local development environment is ready (venv created, dependencies installed).
+- `.env` is configured using `.env.example` and secrets are stored in GitHub/Azure Key Vault.
+- Connectivity checks pass (`python tests/test_setup.py`):
+    - PostgreSQL
+    - Azure Storage
+    - Google Earth Engine
+- Baseline database schema exists (`database/schema.sql`).
+
+Notes:
+- Use `AZURE_STORAGE_ACCOUNT_KEY` (not `AZURE_STORAGE_KEY`) to match `.env.example` and GitHub secrets naming.
+- Phase 1 config code expects `pydantic-settings` (add to `requirements.txt`).
+
+---
+
 ## 🎯 Tasks Breakdown
 
 ### Task 1.1: FastAPI Backend Scaffolding (Days 1–3)
@@ -108,7 +127,8 @@ This is the core engine phase. The backend must:
        
        # Azure
        AZURE_STORAGE_ACCOUNT: str
-       AZURE_STORAGE_KEY: str
+    AZURE_STORAGE_ACCOUNT_KEY: str
+    AZURE_STORAGE_CONNECTION_STRING: str = None
        AZURE_STORAGE_CONTAINER: str = "evidence-packages"
        
        # Satellite

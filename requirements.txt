@@ -38,6 +38,7 @@ seaborn>=0.13
 
 # --- Config ---
 pydantic>=2.5
+pydantic-settings>=2.2
 python-dotenv>=1.0
 setuptools>=68.0
 
