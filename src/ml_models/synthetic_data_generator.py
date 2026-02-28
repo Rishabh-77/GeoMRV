@@ -50,15 +50,17 @@ logger = logging.getLogger(__name__)
 # Region definitions (India agro-climatic zones)
 # ──────────────────────────────────────────────────────────────
 
+
 @dataclass
 class RegionProfile:
     """Baseline vegetation parameters for an Indian region."""
+
     name: str
-    base_ndvi_range: tuple[float, float]   # (low, high) NDVI baseline
-    monsoon_boost: float                    # NDVI increase during monsoon (Jun–Sep)
-    cloud_cover_monsoon: float              # avg cloud % during monsoon
-    cloud_cover_dry: float                  # avg cloud % during dry season
-    noise_std: float                        # observation noise σ
+    base_ndvi_range: tuple[float, float]  # (low, high) NDVI baseline
+    monsoon_boost: float  # NDVI increase during monsoon (Jun–Sep)
+    cloud_cover_monsoon: float  # avg cloud % during monsoon
+    cloud_cover_dry: float  # avg cloud % during dry season
+    noise_std: float  # observation noise σ
 
 
 INDIA_REGIONS: list[RegionProfile] = [
@@ -109,6 +111,7 @@ INDIA_REGIONS: list[RegionProfile] = [
 # Generator
 # ──────────────────────────────────────────────────────────────
 
+
 class SyntheticDataGenerator:
     """Generate synthetic satellite observations for training.
 
@@ -126,9 +129,9 @@ class SyntheticDataGenerator:
 
     # Vegetation profile names →  trend slope per observation step
     PROFILES: dict[str, tuple[float, float]] = {
-        "growth":  (0.0005, 0.004),   # positive trend range
-        "stable":  (-0.0003, 0.0003), # near-zero trend
-        "loss":    (-0.004, -0.0005), # negative trend (degradation)
+        "growth": (0.0005, 0.004),  # positive trend range
+        "stable": (-0.0003, 0.0003),  # near-zero trend
+        "loss": (-0.004, -0.0005),  # negative trend (degradation)
     }
 
     PROFILE_LABELS: dict[str, int] = {
@@ -239,9 +242,7 @@ class SyntheticDataGenerator:
         for i, m in enumerate(months):
             if 6 <= m <= 9:
                 # Bell curve peaking at month 8
-                seasonal[i] = region.monsoon_boost * np.exp(
-                    -0.5 * ((m - 8) / 1.2) ** 2
-                )
+                seasonal[i] = region.monsoon_boost * np.exp(-0.5 * ((m - 8) / 1.2) ** 2)
         ndvi += seasonal
 
         # 3) Add random noise
@@ -271,12 +272,14 @@ class SyntheticDataGenerator:
         cloud_cover = np.clip(cloud_cover, 0, 100)
 
         # Build observations DataFrame
-        obs_df = pd.DataFrame({
-            "date": dates,
-            "ndvi": np.round(ndvi, 6),
-            "evi": np.round(evi, 6),
-            "cloud_cover": np.round(cloud_cover, 2),
-        })
+        obs_df = pd.DataFrame(
+            {
+                "date": dates,
+                "ndvi": np.round(ndvi, 6),
+                "evi": np.round(evi, 6),
+                "cloud_cover": np.round(cloud_cover, 2),
+            }
+        )
 
         # Compute flat features for the training matrix
         features = self._compute_features(obs_df)
@@ -328,7 +331,9 @@ class SyntheticDataGenerator:
         obs["month"] = obs["date"].dt.month
         monthly_mean = obs.groupby("month")["ndvi"].mean()
         seasonal_amplitude = (
-            float(monthly_mean.max() - monthly_mean.min()) if len(monthly_mean) > 0 else 0.0
+            float(monthly_mean.max() - monthly_mean.min())
+            if len(monthly_mean) > 0
+            else 0.0
         )
 
         return {
@@ -348,6 +353,7 @@ class SyntheticDataGenerator:
 # ──────────────────────────────────────────────────────────────
 # Convenience function (backward-compatible with phase2 doc)
 # ──────────────────────────────────────────────────────────────
+
 
 def generate_synthetic_training_data(
     n_projects: int = 50,

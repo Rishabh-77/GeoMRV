@@ -111,10 +111,14 @@ class TrainingDataPreparator:
             "ndvi_max": float(obs["ndvi"].max()),
             "evi_mean": float(obs["evi"].mean()) if "evi" in obs.columns else 0.0,
             "evi_std": (
-                float(obs["evi"].std()) if "evi" in obs.columns and len(obs) > 1 else 0.0
+                float(obs["evi"].std())
+                if "evi" in obs.columns and len(obs) > 1
+                else 0.0
             ),
             "cloud_cover_mean": (
-                float(obs["cloud_cover"].mean()) if "cloud_cover" in obs.columns else 0.0
+                float(obs["cloud_cover"].mean())
+                if "cloud_cover" in obs.columns
+                else 0.0
             ),
             "observation_count": len(obs),
         }
@@ -177,7 +181,8 @@ class TrainingDataPreparator:
             else:
                 slope = fd.get("trend_slope", 0.0)
                 y_list.append(
-                    LABEL_GROWTH if slope > 0.001
+                    LABEL_GROWTH
+                    if slope > 0.001
                     else (LABEL_LOSS if slope < -0.001 else LABEL_STABLE)
                 )
 
@@ -276,7 +281,8 @@ class TrainingDataPreparator:
         (X_train, X_test, y_train, y_test)
         """
         return train_test_split(
-            X, y,
+            X,
+            y,
             test_size=test_size,
             random_state=random_state,
             stratify=y,

@@ -31,5 +31,9 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# ML model artifacts (large binary files)
+models/*.pkl
+models/*.json
+
 # GEE credentials (stored locally)
 credentials.json
