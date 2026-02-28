@@ -137,6 +137,74 @@ class ObservationResponse(BaseModel):
 
 
 # ─────────────────────────────────────────────────────────────
+# Feature Extraction Schemas
+# ─────────────────────────────────────────────────────────────
+
+
+class FeatureExtractionRequest(BaseModel):
+    """Query-parameter schema for triggering feature extraction."""
+
+    start_date: date
+    end_date: date
+
+
+class TrendFeatures(BaseModel):
+    trend_slope: float | None = None
+    slope_per_year: float | None = None
+    r_squared: float | None = None
+
+
+class SeasonalityFeatures(BaseModel):
+    peak_month: int | None = None
+    trough_month: int | None = None
+    peak_ndvi: float | None = None
+    trough_ndvi: float | None = None
+    seasonal_amplitude: float | None = None
+
+
+class GrowthPeriodFeatures(BaseModel):
+    growth_start: str | None = None
+    growth_end: str | None = None
+    growth_days: int = 0
+    ndvi_threshold: float | None = None
+
+
+class NDVIStats(BaseModel):
+    mean: float | None = None
+    std: float | None = None
+    min: float | None = None
+    max: float | None = None
+    median: float | None = None
+    count: int | None = None
+
+
+class BiomassStats(BaseModel):
+    mean: float | None = None
+    std: float | None = None
+    min: float | None = None
+    max: float | None = None
+    note: str | None = None
+
+
+class FeatureSet(BaseModel):
+    """Full set of extracted features for a project period."""
+
+    project_id: str
+    period_start: str | None = None
+    period_end: str | None = None
+    total_observations: int | None = None
+    clear_observations: int | None = None
+    cloud_cover_threshold: float | None = None
+    extracted_at: str | None = None
+    trend: TrendFeatures | None = None
+    seasonality: SeasonalityFeatures | None = None
+    growth_period: GrowthPeriodFeatures | None = None
+    anomalies: list[str] | None = None
+    ndvi_stats: NDVIStats | None = None
+    biomass_stats: BiomassStats | None = None
+
+
+# ─────────────────────────────────────────────────────────────
 # Evidence Package Schemas
 # ─────────────────────────────────────────────────────────────
 

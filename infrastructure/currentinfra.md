@@ -14,6 +14,7 @@ GeoMRV/
 ├── docs/
 │   ├── development_lifecycle/
 │   │   ├── azure_cost_estimation.md
+│   │   ├── DEVELOPMENT_CHECKLIST.md
 │   │   ├── EXECUTIVE_SUMMARY.md
 │   │   ├── india_specific_enhancements.md
 │   │   ├── phase0_foundation.md
@@ -25,25 +26,62 @@ GeoMRV/
 │   │   ├── QUICK_REFERENCE.md
 │   │   └── README.md
 │   ├── architecture.md
-│   └── idea.md
+│   ├── architecture_diagram.md
+│   ├── idea.md
+│   └── india_data_sources.md
 ├── infrastructure/
-│   └── azure_resource_setup.md
+│   ├── API_CONTRACT.md
+│   ├── azure_resource_setup.md
+│   └── currentinfra.md
 ├── src/
-│   └── satellite_services/
+│   ├── __init__.py
+│   ├── api/                              # Task 1.1 – 1.3
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   ├── config.py
+│   │   ├── schemas.py
+│   │   ├── models.py
+│   │   ├── database.py
+│   │   ├── routers/
+│   │   │   ├── __init__.py
+│   │   │   ├── projects.py
+│   │   │   ├── jobs.py
+│   │   │   ├── evidence.py
+│   │   │   └── features.py              # Task 1.4
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── project_service.py
+│   │   │   ├── job_service.py
+│   │   │   └── processing.py
+│   │   └── utils/
+│   │       └── __init__.py
+│   ├── feature_extraction/               # Task 1.4
+│   │   ├── __init__.py
+│   │   ├── feature_calculator.py
+│   │   └── feature_store.py
+│   └── satellite_services/               # Phase 0 + Task 1.3
 │       ├── __init__.py
+│       ├── data_fetcher.py
 │       ├── earth_engine_client.py
 │       ├── ndvi_calculator.py
 │       ├── README.md
 │       └── timelapse_exporter.py
 ├── tests/
 │   ├── __init__.py
+│   ├── test_jobs.py
+│   ├── test_projects.py
+│   ├── test_satellite_fetcher.py
 │   ├── test_satellite_integration.py
-│   └── test_setup.py
+│   ├── test_setup.py
+│   └── fixtures/
+│       └── sample.geojson
 ├── .env
 ├── .env.example
 ├── .gitignore
+├── README.md
 ├── requirements.txt
-└── setup.py
+├── setup.py
+└── SETUP.md
 ```
 
 ## Intended structure (from Phase 0 plan)
@@ -77,30 +115,33 @@ geomrv/
 ```
 
 
-1. **Intended Structure from phase 1**
+1. **Intended Structure from phase 1** (✅ largely achieved)
    ```
    src/api/
-   ├── main.py
-   ├── config.py
-   ├── schemas.py
-   ├── models.py
-   ├── database.py
+   ├── main.py                    ✅
+   ├── config.py                  ✅
+   ├── schemas.py                 ✅
+   ├── models.py                  ✅
+   ├── database.py                ✅
    ├── routers/
-   │   ├── projects.py
-   │   ├── jobs.py
-   │   └── evidence.py
+   │   ├── projects.py            ✅
+   │   ├── jobs.py                ✅
+   │   ├── evidence.py            ✅
+   │   └── features.py            ✅  (Task 1.4 addition)
    ├── services/
-   │   ├── project_service.py
-   │   ├── job_service.py
-   │   └── evidence_service.py
-   ├── utils/
-   │   ├── logger.py
-   │   ├── validators.py
-   │   └── exceptions.py
-   └── tests/
-       ├── test_projects.py
-       ├── test_jobs.py
-       └── test_integration.py
+   │   ├── project_service.py     ✅
+   │   ├── job_service.py         ✅
+   │   └── processing.py          ✅
+   └── utils/
+       └── __init__.py            ✅
+   ```
+
+2. **Feature Extraction module** (✅ Task 1.4)
+   ```
+   src/feature_extraction/
+   ├── __init__.py
+   ├── feature_calculator.py      # FeatureCalculator + PipelineFeatureExtractor
+   └── feature_store.py           # FeatureStore (read/write via processing_logs)
    ```
 ## Alignment summary
 
@@ -108,22 +149,22 @@ Already present (✅):
 - `README.md` (root)
 - `.github/workflows/ci.yml`
 - `database/schema.sql`
-- `src/satellite_services/*`
-- `tests/` (includes `test_setup.py`)
+- `src/satellite_services/*` (Phase 0 + Task 1.3)
+- `src/api/*` (Tasks 1.1 – 1.3)
+- `src/feature_extraction/*` (Task 1.4)
+- `tests/` (test_setup, test_projects, test_jobs, test_satellite_fetcher)
 - `.env.example`, `.gitignore`, `requirements.txt`
 
-Not created yet (⏳) — add when starting Phase 1+:
-- `src/api/`
-- `src/feature_extraction/`
-- `src/ml_models/`
-- `src/verification_rules/`
-- `src/evidence_generation/`
+Not created yet (⏳) — add when starting Task 1.5 / Phase 2+:
+- `src/verification_rules/` ← Task 1.5
+- `src/ml_models/` ← Phase 2
+- `src/evidence_generation/` ← Phase 3
 - `database/migrations/001_initial_schema.sql`
 - `database/README.md`
 - Optional infra scaffolding: `infrastructure/terraform/`, `infrastructure/docker/`
 
 ## What to create next (recommended order)
 
-1. Backend skeleton: `src/api/` (FastAPI app + routers)
+1. Verification rules engine: `src/verification_rules/` (Task 1.5)
 2. Database docs + migrations: `database/README.md` and `database/migrations/`
-3. Minimal API contract alignment: update `API_CONTRACT.md` as endpoints finalize
+3. ML scoring layer: `src/ml_models/` (Phase 2)
