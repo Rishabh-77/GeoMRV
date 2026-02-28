@@ -98,7 +98,12 @@ PROBLEMATIC_FEATURES = {
         "growth_days": 123,
         "ndvi_threshold": 0.40,
     },
-    "anomalies": ["2025-03-15", "2025-06-20", "2025-08-10", "2025-11-05"],  # triggers R4
+    "anomalies": [
+        "2025-03-15",
+        "2025-06-20",
+        "2025-08-10",
+        "2025-11-05",
+    ],  # triggers R4
     "ndvi_stats": {
         "mean": 0.38,
         "std": 0.22,
@@ -371,9 +376,7 @@ class TestVerificationFlagSerialization:
 class TestVerifyEndpoint:
     """POST /api/v1/verification/{project_id}/verify"""
 
-    @patch(
-        "src.api.routers.verification.PipelineFeatureExtractor"
-    )
+    @patch("src.api.routers.verification.PipelineFeatureExtractor")
     def test_verify_returns_pass(self, mock_extractor_class):
         """Verify endpoint returns PASS for healthy features."""
         project = _create_project(name="Verify Pass Test")
@@ -393,9 +396,7 @@ class TestVerifyEndpoint:
         assert data["flag_count"] == 0
         assert data["project_id"] == project["id"]
 
-    @patch(
-        "src.api.routers.verification.PipelineFeatureExtractor"
-    )
+    @patch("src.api.routers.verification.PipelineFeatureExtractor")
     def test_verify_returns_flags(self, mock_extractor_class):
         """Verify endpoint returns flags for problematic features."""
         project = _create_project(name="Verify Flags Test")
@@ -415,9 +416,7 @@ class TestVerifyEndpoint:
         rule_ids = [f["rule_id"] for f in data["verification_flags"]]
         assert "R3_no_growth_detected" in rule_ids
 
-    @patch(
-        "src.api.routers.verification.PipelineFeatureExtractor"
-    )
+    @patch("src.api.routers.verification.PipelineFeatureExtractor")
     def test_verify_error_no_observations(self, mock_extractor_class):
         """Verify returns 422 when extractor signals no data."""
         project = _create_project(name="Verify No Data")
@@ -446,9 +445,7 @@ class TestVerifyEndpoint:
 class TestLatestVerificationEndpoint:
     """GET /api/v1/verification/{project_id}/latest"""
 
-    @patch(
-        "src.api.routers.verification.PipelineFeatureExtractor"
-    )
+    @patch("src.api.routers.verification.PipelineFeatureExtractor")
     def test_latest_returns_result(self, mock_extractor_class):
         """After running verify, latest should return the result."""
         project = _create_project(name="Latest Verification")
@@ -479,9 +476,7 @@ class TestLatestVerificationEndpoint:
 class TestVerificationHistoryEndpoint:
     """GET /api/v1/verification/{project_id}/history"""
 
-    @patch(
-        "src.api.routers.verification.PipelineFeatureExtractor"
-    )
+    @patch("src.api.routers.verification.PipelineFeatureExtractor")
     def test_history_lists_runs(self, mock_extractor_class):
         """History should list all verification runs."""
         project = _create_project(name="Verification History")
