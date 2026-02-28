@@ -46,3 +46,5 @@ setuptools>=68.0
 # --- Testing ---
 pytest>=7.4
 pytest-cov>=4.1
+httpx>=0.25
+python-multipart>=0.0.22

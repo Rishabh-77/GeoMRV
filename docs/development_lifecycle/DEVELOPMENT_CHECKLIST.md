@@ -66,10 +66,10 @@ Use this checklist to confirm a dev environment is ready and track implementatio
 - [x] `scipy>=1.11` added to `requirements.txt`
 - [x] All imports verified, synthetic data tests pass
 
-### Task 1.5: Verification Rules Engine ⬜
-- [ ] `src/verification_rules/rules_engine.py`
-- [ ] `src/verification_rules/rule_store.py`
-- [ ] `src/api/routers/verification.py`
-- [ ] 6+ deterministic verification rules
-- [ ] Confidence scoring algorithm
-- [ ] `tests/test_verification_rules.py`
+### Task 1.5: Verification Rules Engine ✅
+- [x] `src/verification_rules/rules_engine.py`
+- [x] `src/verification_rules/rule_store.py`
+- [x] `src/api/routers/verification.py`
+- [x] 7 deterministic verification rules (R1–R7)
+- [x] Confidence scoring algorithm (0–100 with per-flag penalties)
+- [x] `tests/test_verification_rules.py` – 35 tests (27 unit + 8 integration)
