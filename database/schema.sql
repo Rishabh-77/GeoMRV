@@ -19,6 +19,7 @@ CREATE TABLE boundaries (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     boundary_geom GEOMETRY(Polygon, 4326),
+    boundary_geojson JSONB,
     area_ha FLOAT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

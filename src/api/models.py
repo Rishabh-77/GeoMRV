@@ -63,6 +63,20 @@ class Job(Base):
     )
 
 
+class Boundary(Base):
+    """Project boundary polygon (PostGIS geometry)."""
+
+    __tablename__ = "boundaries"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    boundary_geojson: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    area_ha: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class EvidencePackage(Base):
     """Generated evidence package for a project."""
 

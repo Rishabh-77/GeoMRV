@@ -49,6 +49,31 @@ class ProjectResponse(ProjectCreate):
         from_attributes = True
 
 
+class ProjectUpdate(BaseModel):
+    """Schema for updating an existing project (all fields optional)."""
+
+    name: str | None = None
+    description: str | None = None
+    location_name: str | None = None
+    country: str | None = None
+    region: str | None = None
+    total_area_ha: float | None = None
+    project_type: ProjectType | None = None
+    start_date: date | None = None
+
+
+class BoundaryResponse(BaseModel):
+    """Schema for boundary responses."""
+
+    id: str
+    project_id: str
+    area_ha: float | None = None
+    created_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
 # ─────────────────────────────────────────────────────────────
 # Job Schemas
 # ─────────────────────────────────────────────────────────────
