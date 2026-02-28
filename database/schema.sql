@@ -83,3 +83,21 @@ CREATE TABLE lineage_metadata (
     input_parameters JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE model_registry (
+    id VARCHAR(255) PRIMARY KEY,
+    model_type VARCHAR(100) NOT NULL,
+    version VARCHAR(100) NOT NULL,
+    metrics JSONB,
+    status VARCHAR(50) NOT NULL DEFAULT 'archived',
+    model_path VARCHAR(500) NOT NULL,
+    metadata_path VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deployed_at TIMESTAMP
+);
+
+CREATE INDEX idx_model_registry_type_created
+    ON model_registry (model_type, created_at DESC);
+
+CREATE INDEX idx_model_registry_type_status
+    ON model_registry (model_type, status);

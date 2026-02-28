@@ -60,7 +60,7 @@ Located in: `docs/development_lifecycle/`
 |------|-------|-------|-------------|
 | 1-2 | **0** | Azure setup | Infrastructure ready |
 | 3-6 | **1** | Backend API | Satellite monitoring works |
-| 7-9 | **2** | ML scoring | Predictions available |
+| 7-9 | **2** | ML scoring + verification integration | Predictions + rule-backed decisions available |
 | 10-11 | **3** | Evidence packaging | Reports generated |
 | 12-13 | **4** | Frontend & deploy | Dashboard online |
 | 14-16 | **5** | Testing & launch | MVP launched |
@@ -153,7 +153,7 @@ A: Phase 7 covers this. MVP (Phases 1-5) focuses on evidence generation.
 |-------|-------|-------------|
 | **0** | 1-2 | Working Azure environment, database, CI/CD |
 | **1** | 3-6 | Backend API, satellite fetching, features |
-| **2** | 7-9 | ML predictions, confidence scoring |
+| **2** | 7-9 | ML predictions, registry versioning, score+verify integration |
 | **3** | 10-11 | Professional PDF reports, evidence packages |
 | **4** | 12-13 | React dashboard, project management |
 | **5** | 14-16 | Tests, documentation, deployment, launch |
@@ -226,7 +226,7 @@ If all ✅, you're ready to launch Phase 0!
 
 **Phase 0 Success:** You have Azure resources, database running, CI/CD working  
 **Phase 1 Success:** Backend API returns satellite data and features  
-**Phase 2 Success:** ML models make predictions with confidence scores  
+**Phase 2 Success:** ML models make predictions with confidence scores and integrated verification outcomes  
 **Phase 3 Success:** PDF reports generated and downloadable  
 **Phase 4 Success:** Dashboard accessible online  
 **Phase 5 Success:** 2+ real projects tested, MVP ready to launch  
@@ -252,5 +252,5 @@ You now have:
 
 ---
 
-*Quick Reference Last Updated: Feb 27, 2026*  
+*Quick Reference Last Updated: Mar 1, 2026*  
 *For detailed information, always refer to the full phase documentation*

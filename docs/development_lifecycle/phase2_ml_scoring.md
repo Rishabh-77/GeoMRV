@@ -607,14 +607,16 @@ Phase 2 adds predictive ML models on top of the deterministic features from Phas
     - Supports `auto_load=False` for lazy initialization (useful for testing or deferred startup).
 - [x] ML scoring endpoint operational
     - Verified router `src/api/routers/ml_scoring.py` mounted at `/api/v1/ml` in `src/api/main.py`.
-    - 5 endpoints implemented:
+        - 6 endpoints implemented:
       - `POST /api/v1/ml/score/{project_id}` – extracts features from DB, flattens, runs both models, persists result as `processing_logs` entry with `operation_type='ml_scoring'`.
       - `POST /api/v1/ml/score-features` – scores a raw `FeatureInput` body directly (no DB lookup), returns growth + biomass + input_features + timing.
+            - `POST /api/v1/ml/score-and-verify/{project_id}` – unified workflow that runs feature extraction → ML scoring → deterministic verification and returns combined assessment payload.
       - `GET /api/v1/ml/status` – returns `ModelStatusResponse` with loaded flags, versions, metrics, feature columns.
       - `GET /api/v1/ml/{project_id}/latest` – retrieves most recent ml_scoring processing_log for a project.
       - `GET /api/v1/ml/{project_id}/history` – lists all ml_scoring runs (newest first, configurable `limit`).
     - Verified: `POST /api/v1/ml/score-features` returns HTTP 200 with valid `growth.prediction`, `biomass.biomass_estimate`, `scored_at`, and `input_features`.
     - Verified: `GET /api/v1/ml/status` returns HTTP 200 with `models_loaded: true` and both model versions.
+        - Verified: `POST /api/v1/ml/score-and-verify/{project_id}` returns combined ML + verification output (`ml_scoring`, `verification`, `overall_assessment`) and persists both scoring and verification logs.
 - [x] Predictions logged with versioning
     - `score_project` endpoint persists each scoring run as a `processing_logs` row: `operation_type='ml_scoring'`, `input_data` contains `start_date`, `end_date`, `features` (flat dict), `output_data` contains full scoring result with model versions.
     - Each prediction result includes `model_version` string matching the trained artifact version (e.g. `20260228_165439`).
@@ -710,30 +712,53 @@ Phase 2 adds predictive ML models on top of the deterministic features from Phas
    ```
 
 **Deliverables:**
-- [ ] Model registry database table
-- [ ] Registry service for tracking versions
-- [ ] Ability to activate/deprecate models
-- [ ] Model metrics stored with each version
-- [ ] Deployment audit trail
+- [x] Model registry database table
+    - Implemented `model_registry` table definition in `database/schema.sql`.
+    - Columns: `id`, `model_type`, `version`, `metrics` (JSONB), `status`, `model_path`, `metadata_path`, `created_at`, `deployed_at`.
+    - Added indexes for `(model_type, created_at)` and `(model_type, status)`.
+- [x] Registry service for tracking versions
+    - Implemented `RegistryService` in `src/ml_models/registry_service.py`.
+    - Supports registration (`register_model`) with idempotent behavior for existing model ids.
+    - Supports listing (`list_models`) with optional filters (`model_type`, `status`, `limit`).
+- [x] Ability to activate/deprecate models
+    - `activate_model(model_id)` marks target model `active` and archives sibling active versions of same model type.
+    - `deprecate_model(model_id)` marks a model as `deprecated`.
+    - `get_active_model(model_type)` retrieves currently active model version.
+- [x] Model metrics stored with each version
+    - `metrics` JSONB field included in ORM model (`src/ml_models/model_registry.py`) and persisted by `register_model()`.
+- [x] Deployment audit trail
+    - `created_at` and `deployed_at` timestamps implemented.
+    - `activate_model()` sets `deployed_at` timestamp when model is promoted to active.
+- [x] Registry integrated into training and inference runtime
+    - `TrainingPipeline.run()` now auto-registers saved growth/biomass models via `RegistryService` (`register_models=True` by default).
+    - Newly registered versions are auto-activated by default (`activate_registered_models=True`) with same-type active versions archived.
+    - Pipeline report includes `registry` status block (`registered`, `activated`, registry IDs, and error details if DB unavailable).
+    - `InferenceService.load_models()` now prefers active model versions from registry first, then falls back to latest local model artifacts.
+    - Integration is best-effort and non-blocking: training/inference continue with local artifacts if registry/database is unavailable.
 
-**Files to Create:**
-- `src/ml_models/model_registry.py`
-- `src/ml_models/registry_service.py`
+**Files Created:**
+- [x] `src/ml_models/model_registry.py`
+- [x] `src/ml_models/registry_service.py`
+
+**Files Updated (Task 2.4 integration):**
+- [x] `src/ml_models/training_pipeline.py`
+- [x] `src/ml_models/inference_service.py`
+- [x] `database/schema.sql`
 
 ---
 
 ## ✅ Phase 2 Checklist
 
-- [ ] Training data prepared (synthetic + real where available)
-- [ ] Growth classification model trained and evaluated
-- [ ] Biomass estimation model trained and evaluated
-- [ ] Model metrics documented and acceptable
-- [ ] InferenceService implemented
-- [ ] ML scoring endpoint working
-- [ ] Model registry tracking versions
-- [ ] Model versioning system operational
+- [x] Training data prepared (synthetic + real where available)
+- [x] Growth classification model trained and evaluated
+- [x] Biomass estimation model trained and evaluated
+- [x] Model metrics documented and acceptable
+- [x] InferenceService implemented
+- [x] ML scoring endpoint working
+- [x] Model registry tracking versions
+- [x] Model versioning system operational
 - [ ] All CI/CD tests passing
-- [ ] ML predictions integrated with verification rules
+- [x] ML predictions integrated with verification rules
 - [ ] Ready for evidence packaging (Phase 3)
 
 ---
@@ -746,7 +771,7 @@ Phase 2 adds predictive ML models on top of the deterministic features from Phas
 | Classification Model | ✅ | Gradient boosting with metrics |
 | Biomass Model | ✅ | Random forest regression |
 | Inference Service | ✅ | Production-ready predictions |
-| Model Registry | ✅ | Version tracking & deployment |
+| Model Registry | ✅ | Schema + service + runtime integration (training auto-register/activate, inference prefers active) |
 | Scoring Endpoint | ✅ | API integration |
 
 ---

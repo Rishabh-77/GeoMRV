@@ -37,6 +37,7 @@ from src.ml_models.model_trainer import (
     BiomassEstimationModel,
     GrowthClassificationModel,
 )
+from src.ml_models.registry_service import RegistryService
 from src.ml_models.synthetic_data_generator import (
     SyntheticDataGenerator,
     generate_synthetic_training_data,
@@ -78,6 +79,8 @@ class TrainingPipeline:
         self,
         output_path: str = "models/",
         test_size: float = 0.2,
+        register_models: bool = True,
+        activate_registered_models: bool = True,
     ) -> Dict[str, Any]:
         """Run the full training pipeline.
 
@@ -98,6 +101,10 @@ class TrainingPipeline:
             Directory for model artifacts.
         test_size : float
             Fraction of data reserved for testing.
+        register_models : bool
+            If True, register saved model artifacts in ``model_registry``.
+        activate_registered_models : bool
+            If True, mark newly registered model versions as active.
 
         Returns
         -------
@@ -168,6 +175,22 @@ class TrainingPipeline:
         growth_files = self.growth_model.save(output_path)
         biomass_files = self.biomass_model.save(output_path)
 
+        registry_result = {
+            "registered": False,
+            "activated": False,
+            "growth_registry_id": None,
+            "biomass_registry_id": None,
+            "error": None,
+        }
+        if register_models:
+            registry_result = self._register_saved_models(
+                growth_files=growth_files,
+                biomass_files=biomass_files,
+                growth_metrics=growth_metrics,
+                biomass_metrics=biomass_metrics,
+                activate=activate_registered_models,
+            )
+
         # Data quality report
         quality = self.preparator.data_quality_report(X_scaled, y_growth)
 
@@ -183,6 +206,7 @@ class TrainingPipeline:
             "growth_metrics": growth_metrics,
             "biomass_metrics": biomass_metrics,
             "saved_files": {**growth_files, **biomass_files},
+            "registry": registry_result,
         }
 
         # Save pipeline report
@@ -233,6 +257,66 @@ class TrainingPipeline:
             biomass = 50.0 * ndvi_mean + 30.0 * evi_mean + 5.0
             targets.append(biomass)
         return np.array(targets, dtype=np.float64)
+
+    def _register_saved_models(
+        self,
+        growth_files: Dict[str, str],
+        biomass_files: Dict[str, str],
+        growth_metrics: Dict[str, Any],
+        biomass_metrics: Dict[str, Any],
+        activate: bool,
+    ) -> Dict[str, Any]:
+        """Register saved models in the model registry.
+
+        This is best-effort: if DB/registry is unavailable, training still
+        succeeds and registry status is returned with an error message.
+        """
+        try:
+            from src.api.database import SessionLocal
+
+            db = SessionLocal()
+            try:
+                registry = RegistryService(db)
+
+                growth_entry = registry.register_model(
+                    model_type=self.growth_model.MODEL_TYPE,
+                    version=self.growth_model.version,
+                    metrics=growth_metrics,
+                    model_path=growth_files["model_path"],
+                    metadata_path=growth_files.get("metadata_path"),
+                )
+                biomass_entry = registry.register_model(
+                    model_type=self.biomass_model.MODEL_TYPE,
+                    version=self.biomass_model.version,
+                    metrics=biomass_metrics,
+                    model_path=biomass_files["model_path"],
+                    metadata_path=biomass_files.get("metadata_path"),
+                )
+
+                activated = False
+                if activate:
+                    registry.activate_model(growth_entry.id)
+                    registry.activate_model(biomass_entry.id)
+                    activated = True
+
+                return {
+                    "registered": True,
+                    "activated": activated,
+                    "growth_registry_id": growth_entry.id,
+                    "biomass_registry_id": biomass_entry.id,
+                    "error": None,
+                }
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("Model registry integration skipped due to error: %s", exc)
+            return {
+                "registered": False,
+                "activated": False,
+                "growth_registry_id": None,
+                "biomass_registry_id": None,
+                "error": str(exc),
+            }
 
 
 # ──────────────────────────────────────────────────────────────

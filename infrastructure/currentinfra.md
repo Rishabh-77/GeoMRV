@@ -2,7 +2,7 @@
 
 This doc helps keep the current repository structure aligned with the intended Phase 0+ structure.
 
-## Current repository structure (as of 2026-02-28)
+## Current repository structure (as of 2026-03-01)
 
 ```
 GeoMRV/
@@ -35,7 +35,7 @@ GeoMRV/
 │   └── currentinfra.md
 ├── src/
 │   ├── __init__.py
-│   ├── api/                              # Task 1.1 – 1.3
+│   ├── api/                              # Tasks 1.1 – 2.4
 │   │   ├── __init__.py
 │   │   ├── main.py
 │   │   ├── config.py
@@ -48,7 +48,7 @@ GeoMRV/
 │   │   │   ├── jobs.py
 │   │   │   ├── evidence.py
 │   │   │   ├── features.py              # Task 1.4
-│   │   │   ├── ml_scoring.py            # Task 2.3
+│   │   │   ├── ml_scoring.py            # Tasks 2.3 – 2.4 integration
 │   │   │   └── verification.py          # Task 1.5
 │   │   ├── services/
 │   │   │   ├── __init__.py
@@ -61,6 +61,15 @@ GeoMRV/
 │   │   ├── __init__.py
 │   │   ├── feature_calculator.py
 │   │   └── feature_store.py
+│   ├── ml_models/                        # Tasks 2.1 – 2.4
+│   │   ├── __init__.py
+│   │   ├── data_preparation.py
+│   │   ├── synthetic_data_generator.py
+│   │   ├── model_trainer.py
+│   │   ├── training_pipeline.py
+│   │   ├── inference_service.py
+│   │   ├── model_registry.py
+│   │   └── registry_service.py
 │   ├── verification_rules/               # Task 1.5
 │   │   ├── __init__.py
 │   │   ├── rules_engine.py
@@ -74,11 +83,13 @@ GeoMRV/
 │       └── timelapse_exporter.py
 ├── tests/
 │   ├── __init__.py
+│   ├── test_inference_service.py
 │   ├── test_jobs.py
 │   ├── test_projects.py
 │   ├── test_satellite_fetcher.py
 │   ├── test_satellite_integration.py
 │   ├── test_setup.py
+│   ├── test_verification_rules.py
 │   └── fixtures/
 │       └── sample.geojson
 ├── .env
@@ -134,6 +145,7 @@ geomrv/
    │   ├── jobs.py                ✅
    │   ├── evidence.py            ✅
    │   ├── features.py            ✅  (Task 1.4 addition)
+   │   ├── ml_scoring.py          ✅  (Tasks 2.3 – 2.4 addition)
    │   └── verification.py        ✅  (Task 1.5 addition)
    ├── services/
    │   ├── project_service.py     ✅
@@ -158,6 +170,18 @@ geomrv/
    ├── rules_engine.py      # VerificationRulesEngine (7 rules + confidence scoring)
    └── rule_store.py         # RuleStore (read/write via processing_logs)
    ```
+
+4. **ML Models module** (✅ Tasks 2.1 – 2.4)
+   ```
+   src/ml_models/
+   ├── data_preparation.py      # TrainingDataPreparator + FEATURE_COLUMNS
+   ├── synthetic_data_generator.py
+   ├── model_trainer.py         # Growth + Biomass model classes
+   ├── training_pipeline.py     # End-to-end training + registry registration/activation
+   ├── inference_service.py     # Registry-aware model loading + scoring
+   ├── model_registry.py        # SQLAlchemy model for registry table
+   └── registry_service.py      # Register / activate / deprecate / list / get_active
+   ```
 ## Alignment summary
 
 Already present (✅):
@@ -168,7 +192,7 @@ Already present (✅):
 - `src/api/*` (Tasks 1.1 – 1.3)
 - `src/feature_extraction/*` (Task 1.4)
 - `src/verification_rules/*` (Task 1.5)
-- `src/ml_models/*` (Tasks 2.1 – 2.3)
+- `src/ml_models/*` (Tasks 2.1 – 2.4, including runtime registry integration)
 - `tests/` (test_setup, test_projects, test_jobs, test_satellite_fetcher, test_verification_rules, test_inference_service)
 - `.env.example`, `.gitignore`, `requirements.txt`
 
@@ -180,6 +204,6 @@ Not created yet (⏳) — add when starting Phase 3+:
 
 ## What to create next (recommended order)
 
-1. Model registry & versioning: `src/ml_models/model_registry.py` (Task 2.4)
+1. Evidence generation module: `src/evidence_generation/` (Phase 3)
 2. Database docs + migrations: `database/README.md` and `database/migrations/`
-3. Evidence generation: `src/evidence_generation/` (Phase 3)
+3. Optional infra scaffolding: `infrastructure/terraform/`, `infrastructure/docker/`
