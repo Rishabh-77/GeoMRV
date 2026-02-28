@@ -692,20 +692,29 @@ Notes:
    ```
 
 **Deliverables:**
-- [ ] SatelliteDataFetcher implemented
-- [ ] Sentinel-2 NDVI/EVI calculation working
-- [ ] Job creation endpoint functional
-- [ ] Background job processing working
-- [ ] Observations stored in database
-- [ ] Processing logs created
-- [ ] Tested with real Indian region (e.g., Goa)
+- [x] SatelliteDataFetcher implemented
+    - Verified file created: `src/satellite_services/data_fetcher.py`.
+    - Verified fetcher integrates with existing `EarthEngineClient` + `NDVICalculator` from Phase 0.
+- [x] Sentinel-2 NDVI/EVI calculation working
+    - Verified job run produced observation rows containing `ndvi`, `evi`, `ndvi_std`, `ndvi_count`, and `cloud_cover_percent`.
+    - Verified `data_source` recorded as `Sentinel-2_SR_Harmonized`.
+- [x] Job creation endpoint functional
+    - Verified `POST /api/v1/jobs` returns 201 with job payload (`operation_type: monitoring`, initial status `pending`).
+- [x] Background job processing working
+    - Verified status transition `pending → running → completed` for job `a474b622-71ef-4c28-aa4a-4f5a2fea3ff5`.
+- [x] Observations stored in database
+    - Verified `GET /api/v1/jobs/projects/{project_id}/observations` returns non-empty persisted observations.
+- [x] Processing logs created
+    - Verified project job list includes processing log row with `operation_type: satellite_fetch` and `status: success`.
+- [x] Tested with real Indian region (e.g., Goa)
+    - Verified manual run used Goa-area boundary (same coordinates as prior integration checks) and Jan–Mar 2025 monitoring window.
 
 **Files to Create:**
-- `src/satellite_services/data_fetcher.py`
-- `src/api/routers/jobs.py`
-- `src/api/services/job_service.py`
-- `tests/test_satellite_fetcher.py`
-- `tests/test_jobs.py`
+- [x] `src/satellite_services/data_fetcher.py`
+- [x] `src/api/routers/jobs.py`
+- [x] `src/api/services/job_service.py`
+- [x] `tests/test_satellite_fetcher.py`
+- [x] `tests/test_jobs.py`
 
 ---
 

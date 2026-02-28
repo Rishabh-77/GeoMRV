@@ -77,6 +77,27 @@ class Boundary(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class Observation(Base):
+    """Satellite observation (NDVI/EVI time-series data point)."""
+
+    __tablename__ = "observations"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    observation_date: Mapped[date] = mapped_column(Date, nullable=False)
+    ndvi: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ndvi_std: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ndvi_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    evi: Mapped[float | None] = mapped_column(Float, nullable=True)
+    biomass_estimate: Mapped[float | None] = mapped_column(Float, nullable=True)
+    biomass_std: Mapped[float | None] = mapped_column(Float, nullable=True)
+    data_source: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    cloud_cover_percent: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class EvidencePackage(Base):
     """Generated evidence package for a project."""
 
