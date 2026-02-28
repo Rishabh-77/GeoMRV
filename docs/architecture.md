@@ -112,10 +112,45 @@ Technology:
 Core tables:
 
 * projects
-* polygons
-* feature_timeseries
-* run_metadata
-* quality_flags
+* boundaries (with PostGIS geometry + GeoJSON)
+* observations (NDVI, EVI, biomass, cloud cover per date)
+* processing_logs (job lifecycle + feature extraction outputs as JSONB)
+* evidence_packages
+* lineage_metadata
+
+### 3.5.1 Feature Extraction Engine (Task 1.4 – Implemented)
+
+Responsibilities:
+
+* read satellite observations from the database
+* filter by cloud cover threshold (default < 30%)
+* compute standardised time‑series features:
+  * **Trend** – linear regression slope on smoothed NDVI, R², annualised slope
+  * **Seasonality** – peak / trough months, peak / trough NDVI, seasonal amplitude
+  * **Growth period** – consecutive period above mean NDVI, duration in days
+  * **Anomaly detection** – dates where NDVI deviates > 2σ from rolling mean
+  * **NDVI statistics** – mean, std, min, max, median, count
+  * **Biomass proxy** – linear estimate from NDVI + EVI (placeholder coefficients)
+* persist feature sets as versioned processing_logs entries
+* expose features via REST API for downstream consumers
+
+Components:
+
+* `FeatureCalculator` – stateless static methods (no DB dependency)
+* `PipelineFeatureExtractor` – reads observations from DB, runs all calculators
+* `FeatureStore` – read/write feature sets to `processing_logs` table
+
+Location:
+
+* `src/feature_extraction/feature_calculator.py`
+* `src/feature_extraction/feature_store.py`
+* `src/api/routers/features.py`
+
+API Endpoints:
+
+* `POST /api/v1/features/{project_id}/extract` – run extraction
+* `GET  /api/v1/features/{project_id}/latest` – get last feature set
+* `GET  /api/v1/features/{project_id}/history` – list all extraction runs
 
 ---
 

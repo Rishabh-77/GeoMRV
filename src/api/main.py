@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.config import settings
-from src.api.routers import evidence, jobs, projects
+from src.api.routers import evidence, features, jobs, projects
 
 app = FastAPI(
     title="GeoMRV API",
@@ -29,6 +29,7 @@ app.add_middleware(
 app.include_router(projects.router, prefix="/api/v1")
 app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(evidence.router, prefix="/api/v1")
+app.include_router(features.router, prefix="/api/v1")
 
 
 @app.get("/health")
