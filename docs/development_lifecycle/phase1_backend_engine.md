@@ -423,16 +423,26 @@ Notes:
    ```
 
 **Deliverables:**
-- [ ] Project CRUD endpoints working
-- [ ] Boundary upload endpoint
-- [ ] ProjectService implemented
-- [ ] Endpoints tested with sample data
-- [ ] API documentation updated
+- [x] Project CRUD endpoints working
+    - Verified endpoints: `POST /api/v1/projects`, `GET /api/v1/projects`, `GET /api/v1/projects/{project_id}`, `PUT /api/v1/projects/{project_id}`, `DELETE /api/v1/projects/{project_id}`.
+    - Verified success and not-found flows through automated tests.
+- [x] Boundary upload endpoint
+    - Verified endpoint: `POST /api/v1/projects/{project_id}/upload-boundary` with `.geojson` upload support.
+    - Verified boundary retrieval endpoint: `GET /api/v1/projects/{project_id}/boundary`.
+    - Verified invalid extension and invalid JSON paths return proper 400 errors.
+- [x] ProjectService implemented
+    - Verified service file created: `src/api/services/project_service.py`.
+    - Verified service methods for list/create/get/update/delete project and save/get boundary are used by router.
+- [x] Endpoints tested with sample data
+    - Verified test suite: `tests/test_projects.py`.
+    - Verified result: `15 passed` (CRUD + boundary upload/retrieval + error paths).
+- [x] API documentation updated
+    - Verified OpenAPI docs include new project update and boundary endpoints under `/docs`.
 
 **Files to Create:**
-- `src/api/routers/projects.py`
-- `src/api/services/project_service.py`
-- `tests/test_projects.py`
+- [x] `src/api/routers/projects.py`
+- [x] `src/api/services/project_service.py`
+- [x] `tests/test_projects.py`
 
 ---
 

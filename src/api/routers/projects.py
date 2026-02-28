@@ -1,112 +1,154 @@
 """
 GeoMRV Projects Router
 ======================
-CRUD endpoints for project management.
+CRUD endpoints for project management + boundary upload.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import json
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from src.api.database import get_db
-from src.api.models import Project
-from src.api.schemas import ProjectCreate, ProjectResponse
-
-if TYPE_CHECKING:
-    pass
+from src.api.schemas import (
+    BoundaryResponse,
+    ProjectCreate,
+    ProjectResponse,
+    ProjectUpdate,
+)
+from src.api.services.project_service import ProjectService
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 
+# ── helpers ──────────────────────────────────────────────────
+def _svc(db: Session = Depends(get_db)) -> ProjectService:
+    return ProjectService(db)
+
+
+# ── CRUD ─────────────────────────────────────────────────────
+
+
 @router.get("", response_model=list[ProjectResponse])
 def list_projects(
-    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
-) -> list[Project]:
+    skip: int = 0,
+    limit: int = 100,
+    svc: ProjectService = Depends(_svc),
+) -> list[ProjectResponse]:
     """List all projects with pagination."""
-    stmt = select(Project).offset(skip).limit(limit)
-    result = db.execute(stmt).scalars().all()
-    return [
-        ProjectResponse(
-            id=str(p.id),
-            name=p.name,
-            description=p.description,
-            location_name=p.location_name,
-            country=p.country,
-            region=p.region,
-            total_area_ha=p.total_area_ha,
-            project_type=p.project_type,
-            start_date=p.start_date,
-            created_at=p.created_at,
-            updated_at=p.updated_at,
-        )
-        for p in result
-    ]
+    return svc.list_projects(skip=skip, limit=limit)
 
 
 @router.post("", response_model=ProjectResponse, status_code=201)
 def create_project(
-    payload: ProjectCreate, db: Session = Depends(get_db)
+    payload: ProjectCreate,
+    svc: ProjectService = Depends(_svc),
 ) -> ProjectResponse:
     """Create a new project."""
-    project = Project(
-        name=payload.name,
-        description=payload.description,
-        location_name=payload.location_name,
-        country=payload.country,
-        region=payload.region,
-        total_area_ha=payload.total_area_ha,
-        project_type=payload.project_type.value if payload.project_type else None,
-        start_date=payload.start_date,
-    )
-    db.add(project)
-    db.commit()
-    db.refresh(project)
-    return ProjectResponse(
-        id=str(project.id),
-        name=project.name,
-        description=project.description,
-        location_name=project.location_name,
-        country=project.country,
-        region=project.region,
-        total_area_ha=project.total_area_ha,
-        project_type=project.project_type,
-        start_date=project.start_date,
-        created_at=project.created_at,
-        updated_at=project.updated_at,
-    )
+    return svc.create_project(payload)
 
 
 @router.get("/{project_id}", response_model=ProjectResponse)
-def get_project(project_id: UUID, db: Session = Depends(get_db)) -> ProjectResponse:
+def get_project(
+    project_id: UUID,
+    svc: ProjectService = Depends(_svc),
+) -> ProjectResponse:
     """Get a project by ID."""
-    project = db.get(Project, project_id)
-    if not project:
+    result = svc.get_project(project_id)
+    if not result:
         raise HTTPException(status_code=404, detail="Project not found")
-    return ProjectResponse(
-        id=str(project.id),
-        name=project.name,
-        description=project.description,
-        location_name=project.location_name,
-        country=project.country,
-        region=project.region,
-        total_area_ha=project.total_area_ha,
-        project_type=project.project_type,
-        start_date=project.start_date,
-        created_at=project.created_at,
-        updated_at=project.updated_at,
-    )
+    return result
+
+
+@router.put("/{project_id}", response_model=ProjectResponse)
+def update_project(
+    project_id: UUID,
+    payload: ProjectUpdate,
+    svc: ProjectService = Depends(_svc),
+) -> ProjectResponse:
+    """Update a project (partial update — only supplied fields are changed)."""
+    result = svc.update_project(project_id, payload)
+    if not result:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return result
 
 
 @router.delete("/{project_id}", status_code=204)
-def delete_project(project_id: UUID, db: Session = Depends(get_db)) -> None:
+def delete_project(
+    project_id: UUID,
+    svc: ProjectService = Depends(_svc),
+) -> None:
     """Delete a project by ID."""
-    project = db.get(Project, project_id)
-    if not project:
+    if not svc.delete_project(project_id):
         raise HTTPException(status_code=404, detail="Project not found")
-    db.delete(project)
-    db.commit()
+
+
+# ── Boundary ─────────────────────────────────────────────────
+
+
+@router.post(
+    "/{project_id}/upload-boundary",
+    response_model=BoundaryResponse,
+    status_code=201,
+)
+async def upload_boundary(
+    project_id: UUID,
+    file: UploadFile,
+    svc: ProjectService = Depends(_svc),
+) -> BoundaryResponse:
+    """Upload a GeoJSON boundary file for a project.
+
+    Accepts a ``.geojson`` file.  The geometry is stored and the
+    approximate area (in hectares) is computed automatically.
+    """
+    # Ensure project exists
+    if not svc.get_project(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if not file.filename or not file.filename.endswith(".geojson"):
+        raise HTTPException(
+            status_code=400,
+            detail="Only .geojson files are supported",
+        )
+
+    contents = await file.read()
+    try:
+        geojson = json.loads(contents)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON in uploaded file")
+
+    # Extract the geometry object
+    geometry = geojson
+    if geojson.get("type") == "FeatureCollection":
+        features = geojson.get("features", [])
+        if not features:
+            raise HTTPException(
+                status_code=400, detail="FeatureCollection has no features"
+            )
+        geometry = features[0].get("geometry", geojson)
+    elif geojson.get("type") == "Feature":
+        geometry = geojson.get("geometry", geojson)
+
+    area_ha = ProjectService.calculate_area_ha(geometry)
+    return svc.save_boundary(project_id, geometry, area_ha)
+
+
+@router.get(
+    "/{project_id}/boundary",
+    response_model=BoundaryResponse,
+)
+def get_boundary(
+    project_id: UUID,
+    svc: ProjectService = Depends(_svc),
+) -> BoundaryResponse:
+    """Get the latest boundary for a project."""
+    if not svc.get_project(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    boundary = svc.get_boundary(project_id)
+    if not boundary:
+        raise HTTPException(status_code=404, detail="No boundary found for project")
+    return boundary
