@@ -112,6 +112,31 @@ class JobResponse(BaseModel):
 
 
 # ─────────────────────────────────────────────────────────────
+# Observation Schemas
+# ─────────────────────────────────────────────────────────────
+
+
+class ObservationResponse(BaseModel):
+    """Schema for satellite observation responses."""
+
+    id: str
+    project_id: str
+    observation_date: date
+    ndvi: float | None = None
+    ndvi_std: float | None = None
+    ndvi_count: int | None = None
+    evi: float | None = None
+    biomass_estimate: float | None = None
+    biomass_std: float | None = None
+    data_source: str | None = None
+    cloud_cover_percent: float | None = None
+    created_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+# ─────────────────────────────────────────────────────────────
 # Evidence Package Schemas
 # ─────────────────────────────────────────────────────────────
 

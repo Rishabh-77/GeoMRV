@@ -10,8 +10,14 @@ Modules:
     timelapse_exporter   – RGB timelapse generation (MP4) + Azure Blob upload
 """
 
+from .data_fetcher import SatelliteDataFetcher
 from .earth_engine_client import EarthEngineClient
 from .ndvi_calculator import NDVICalculator
 from .timelapse_exporter import TimelapseExporter
 
-__all__ = ["EarthEngineClient", "NDVICalculator", "TimelapseExporter"]
+__all__ = [
+    "EarthEngineClient",
+    "NDVICalculator",
+    "SatelliteDataFetcher",
+    "TimelapseExporter",
+]
