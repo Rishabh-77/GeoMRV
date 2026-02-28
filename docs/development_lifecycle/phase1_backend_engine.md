@@ -255,19 +255,28 @@ Notes:
    ```
 
 **Deliverables:**
-- [ ] FastAPI application created and running
-- [ ] All core routes defined (scaffold)
-- [ ] Database connections working
-- [ ] Configuration loaded from `.env`
-- [ ] Health check endpoint works
-- [ ] API documentation at `/docs`
+- [x] FastAPI application created and running
+    - Verified app is running on `127.0.0.1:8000` and responds successfully.
+- [x] All core routes defined (scaffold)
+    - Verified routers are mounted under `/api/v1` for `projects`, `jobs`, and `evidence`.
+    - Verified route response from `/api/v1/projects` with HTTP 200.
+- [x] Database connections working
+    - Verified SQLAlchemy session can execute `SELECT 1` successfully (`DB_OK: True`).
+    - Verified API route `/api/v1/projects` returns persisted project data from PostgreSQL.
+- [x] Configuration loaded from `.env`
+    - Verified required environment settings are loaded (`ENV_FILE_OK: True`).
+    - Verified settings are consumed by database/session initialization.
+- [x] Health check endpoint works
+    - Verified `/health` returns `{"status":"healthy","service":"geomrv-api"}`.
+- [x] API documentation at `/docs`
+    - Verified `/docs` is accessible (HTTP 200).
 
 **Files to Create:**
-- `src/api/main.py`
-- `src/api/config.py`
-- `src/api/schemas.py`
-- `src/api/models.py`
-- `src/api/database.py`
+- [x] `src/api/main.py`
+- [x] `src/api/config.py`
+- [x] `src/api/schemas.py`
+- [x] `src/api/models.py`
+- [x] `src/api/database.py`
 
 ---
 
