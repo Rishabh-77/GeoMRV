@@ -48,6 +48,7 @@ GeoMRV/
 │   │   │   ├── jobs.py
 │   │   │   ├── evidence.py
 │   │   │   ├── features.py              # Task 1.4
+│   │   │   ├── ml_scoring.py            # Task 2.3
 │   │   │   └── verification.py          # Task 1.5
 │   │   ├── services/
 │   │   │   ├── __init__.py
@@ -167,11 +168,11 @@ Already present (✅):
 - `src/api/*` (Tasks 1.1 – 1.3)
 - `src/feature_extraction/*` (Task 1.4)
 - `src/verification_rules/*` (Task 1.5)
-- `tests/` (test_setup, test_projects, test_jobs, test_satellite_fetcher, test_verification_rules)
+- `src/ml_models/*` (Tasks 2.1 – 2.3)
+- `tests/` (test_setup, test_projects, test_jobs, test_satellite_fetcher, test_verification_rules, test_inference_service)
 - `.env.example`, `.gitignore`, `requirements.txt`
 
-Not created yet (⏳) — add when starting Phase 2+:
-- `src/ml_models/` ← Phase 2
+Not created yet (⏳) — add when starting Phase 3+:
 - `src/evidence_generation/` ← Phase 3
 - `database/migrations/001_initial_schema.sql`
 - `database/README.md`
@@ -179,6 +180,6 @@ Not created yet (⏳) — add when starting Phase 2+:
 
 ## What to create next (recommended order)
 
-1. ML scoring layer: `src/ml_models/` (Phase 2)
+1. Model registry & versioning: `src/ml_models/model_registry.py` (Task 2.4)
 2. Database docs + migrations: `database/README.md` and `database/migrations/`
 3. Evidence generation: `src/evidence_generation/` (Phase 3)
