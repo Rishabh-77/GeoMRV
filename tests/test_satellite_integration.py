@@ -15,10 +15,12 @@ import ee
 
 # ── Fixtures ─────────────────────────────────────────────────────────────
 
+
 @pytest.fixture(scope="module")
 def gee_client():
     """Provide a shared EarthEngineClient for the test module."""
     from src.satellite_services.earth_engine_client import EarthEngineClient
+
     return EarthEngineClient()
 
 
@@ -35,6 +37,7 @@ END_DATE = "2025-03-01"
 
 # ── 1. Earth Engine Client Tests ─────────────────────────────────────────
 
+
 class TestEarthEngineClient:
     """Verify GEE initialisation and Sentinel-2 collection loading."""
 
@@ -50,9 +53,9 @@ class TestEarthEngineClient:
         count = col.size().getInfo()
         assert count >= 0, "Collection size should be non-negative"
         # At least some Sentinel-2 images should exist for Goa in 2 months
-        assert count > 0, (
-            f"Expected >0 Sentinel-2 images for Goa ({START_DATE}–{END_DATE}), got {count}"
-        )
+        assert (
+            count > 0
+        ), f"Expected >0 Sentinel-2 images for Goa ({START_DATE}–{END_DATE}), got {count}"
 
     def test_geometry_from_bbox(self, gee_client):
         geom = gee_client.geometry_from_bbox(73.8, 15.35, 73.95, 15.45)
@@ -62,7 +65,13 @@ class TestEarthEngineClient:
         geojson = {
             "type": "Polygon",
             "coordinates": [
-                [[73.8, 15.35], [73.95, 15.35], [73.95, 15.45], [73.8, 15.45], [73.8, 15.35]]
+                [
+                    [73.8, 15.35],
+                    [73.95, 15.35],
+                    [73.95, 15.45],
+                    [73.8, 15.45],
+                    [73.8, 15.35],
+                ]
             ],
         }
         geom = gee_client.geometry_from_geojson(geojson)
@@ -78,6 +87,7 @@ class TestEarthEngineClient:
 
 
 # ── 2. NDVI Calculator Tests ────────────────────────────────────────────
+
 
 class TestNDVICalculator:
     """Verify NDVI/EVI time-series computation."""
@@ -116,12 +126,13 @@ class TestNDVICalculator:
         )
 
         if not df.empty:
-            assert (df["cloud_cover_pct"] <= 30).all(), (
-                "All rows should have cloud_cover ≤ max_cloud_pct"
-            )
+            assert (
+                df["cloud_cover_pct"] <= 30
+            ).all(), "All rows should have cloud_cover ≤ max_cloud_pct"
 
 
 # ── 3. Timelapse Exporter Tests ─────────────────────────────────────────
+
 
 class TestTimelapseExporter:
     """Verify timelapse MP4 generation (does NOT upload to Azure)."""
@@ -164,6 +175,7 @@ class TestTimelapseExporter:
 
 
 # ── 4. Optional – Blob Upload (skipped if env vars missing) ─────────────
+
 
 class TestBlobUpload:
     """Test Azure Blob upload – requires AZURE_STORAGE_CONNECTION_STRING."""

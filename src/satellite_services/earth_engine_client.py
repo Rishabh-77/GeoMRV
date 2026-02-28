@@ -17,15 +17,14 @@ logger = logging.getLogger(__name__)
 # Sentinel-2 cloud-masking helpers (uses the QA60 bitmask band)
 # ---------------------------------------------------------------------------
 
+
 def _mask_s2_clouds(image: ee.Image) -> ee.Image:
     """Mask clouds and cirrus in a Sentinel-2 SR image using the QA60 band."""
     qa = image.select("QA60")
     # Bits 10 and 11 are clouds and cirrus respectively
     cloud_bit_mask = 1 << 10
     cirrus_bit_mask = 1 << 11
-    mask = qa.bitwiseAnd(cloud_bit_mask).eq(0).And(
-        qa.bitwiseAnd(cirrus_bit_mask).eq(0)
-    )
+    mask = qa.bitwiseAnd(cloud_bit_mask).eq(0).And(qa.bitwiseAnd(cirrus_bit_mask).eq(0))
     return image.updateMask(mask)
 
 
