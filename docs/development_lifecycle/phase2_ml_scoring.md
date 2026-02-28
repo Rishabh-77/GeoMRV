@@ -599,17 +599,44 @@ Phase 2 adds predictive ML models on top of the deterministic features from Phas
    ```
 
 **Deliverables:**
-- [ ] InferenceService loads and serves models
-- [ ] ML scoring endpoint operational
-- [ ] Predictions logged with versioning
-- [ ] Inference response time < 500ms
-- [ ] Model versioning tracked
-- [ ] Error handling for missing models
+- [x] InferenceService loads and serves models
+    - Verified `InferenceService` in `src/ml_models/inference_service.py`.
+    - `load_models()` discovers latest versioned `.pkl` files from disk via sorted glob (`growth_model_*.pkl`, `biomass_model_*.pkl`) and loads the last (newest) match.
+    - Loads sidecar JSON metadata files (`growth_metadata_*.json`, `biomass_metadata_*.json`) to recover version string, training metrics, and sklearn params.
+    - `status()` returns full introspection dict: `models_loaded`, per-model `loaded`/`version`/`metrics`, and `feature_columns`.
+    - Supports `auto_load=False` for lazy initialization (useful for testing or deferred startup).
+- [x] ML scoring endpoint operational
+    - Verified router `src/api/routers/ml_scoring.py` mounted at `/api/v1/ml` in `src/api/main.py`.
+    - 5 endpoints implemented:
+      - `POST /api/v1/ml/score/{project_id}` – extracts features from DB, flattens, runs both models, persists result as `processing_logs` entry with `operation_type='ml_scoring'`.
+      - `POST /api/v1/ml/score-features` – scores a raw `FeatureInput` body directly (no DB lookup), returns growth + biomass + input_features + timing.
+      - `GET /api/v1/ml/status` – returns `ModelStatusResponse` with loaded flags, versions, metrics, feature columns.
+      - `GET /api/v1/ml/{project_id}/latest` – retrieves most recent ml_scoring processing_log for a project.
+      - `GET /api/v1/ml/{project_id}/history` – lists all ml_scoring runs (newest first, configurable `limit`).
+    - Verified: `POST /api/v1/ml/score-features` returns HTTP 200 with valid `growth.prediction`, `biomass.biomass_estimate`, `scored_at`, and `input_features`.
+    - Verified: `GET /api/v1/ml/status` returns HTTP 200 with `models_loaded: true` and both model versions.
+- [x] Predictions logged with versioning
+    - `score_project` endpoint persists each scoring run as a `processing_logs` row: `operation_type='ml_scoring'`, `input_data` contains `start_date`, `end_date`, `features` (flat dict), `output_data` contains full scoring result with model versions.
+    - Each prediction result includes `model_version` string matching the trained artifact version (e.g. `20260228_165439`).
+    - Verified: `predict_growth()` and `predict_biomass()` both embed `model_version` and `model_type` in their return dicts.
+- [x] Inference response time < 500ms
+    - Verified: 100 consecutive `score()` calls (both models) complete in < 500ms total → < 5ms per score on average.
+    - Each prediction result includes `inference_time_ms` field for auditing.
+- [x] Model versioning tracked
+    - Version string derived from model artifact filename (timestamp format `YYYYMMDD_HHMMSS`).
+    - `status()` exposes version + key metrics for both models.
+    - Metadata sidecar JSON files loaded automatically alongside model `.pkl` files.
+- [x] Error handling for missing models
+    - Verified: `InferenceService(model_dir="/nonexistent")` sets `models_loaded=False`, does not crash.
+    - Verified: `predict_growth()` / `predict_biomass()` raise `RuntimeError("...model not loaded...")` when model is `None`.
+    - Verified: `score()` returns `{"error": "...model not loaded"}` dicts instead of crashing when models are missing.
+    - Verified: API endpoints return HTTP 503 with message `"ML models are not loaded. Run the training pipeline first."` when service has no models.
+    - Verified: `score_project` returns HTTP 404 for nonexistent project_id, HTTP 422 for feature extraction failures.
 
-**Files to Create:**
-- `src/ml_models/inference_service.py`
-- `src/api/routers/ml_scoring.py`
-- `tests/test_inference_service.py`
+**Files Created:**
+- [x] `src/ml_models/inference_service.py`
+- [x] `src/api/routers/ml_scoring.py`
+- [x] `tests/test_inference_service.py`
 
 ---
 
