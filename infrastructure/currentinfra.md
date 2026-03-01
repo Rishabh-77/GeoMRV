@@ -182,6 +182,14 @@ geomrv/
    ├── model_registry.py        # SQLAlchemy model for registry table
    └── registry_service.py      # Register / activate / deprecate / list / get_active
    ```
+
+5. **Evidence Generation module** (✅ Task 3.1 – schema & validation)
+   ```
+   src/evidence_generation/
+   ├── __init__.py              # Public exports
+   ├── package_schema.py        # EvidencePackage + DataSource + ProcessingStep + VerificationResult + Feature
+   └── package_validator.py     # EvidencePackageValidator + ValidationReport
+   ```
 ## Alignment summary
 
 Already present (✅):
@@ -193,17 +201,22 @@ Already present (✅):
 - `src/feature_extraction/*` (Task 1.4)
 - `src/verification_rules/*` (Task 1.5)
 - `src/ml_models/*` (Tasks 2.1 – 2.4, including runtime registry integration)
-- `tests/` (test_setup, test_projects, test_jobs, test_satellite_fetcher, test_verification_rules, test_inference_service)
+- `src/evidence_generation/*` (Task 3.1 – schema & validation)
+- `tests/` (test_setup, test_projects, test_jobs, test_satellite_fetcher, test_verification_rules, test_inference_service, test_package_schema)
 - `.env.example`, `.gitignore`, `requirements.txt`
 
-Not created yet (⏳) — add when starting Phase 3+:
-- `src/evidence_generation/` ← Phase 3
+Not created yet (⏳) — add when continuing Phase 3:
+- `src/evidence_generation/visualizations.py` ← Task 3.2
+- `src/evidence_generation/report_generator.py` ← Task 3.2
+- `src/evidence_generation/package_assembly.py` ← Task 3.3
+- `src/evidence_generation/storage_service.py` ← Task 3.3
 - `database/migrations/001_initial_schema.sql`
 - `database/README.md`
 - Optional infra scaffolding: `infrastructure/terraform/`, `infrastructure/docker/`
 
 ## What to create next (recommended order)
 
-1. Evidence generation module: `src/evidence_generation/` (Phase 3)
-2. Database docs + migrations: `database/README.md` and `database/migrations/`
-3. Optional infra scaffolding: `infrastructure/terraform/`, `infrastructure/docker/`
+1. Report visualizations + PDF generator: `src/evidence_generation/visualizations.py`, `report_generator.py` (Task 3.2)
+2. Package assembly + storage: `src/evidence_generation/package_assembly.py`, `storage_service.py` (Task 3.3)
+3. Database docs + migrations: `database/README.md` and `database/migrations/`
+4. Optional infra scaffolding: `infrastructure/terraform/`, `infrastructure/docker/`
