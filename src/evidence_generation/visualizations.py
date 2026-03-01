@@ -101,7 +101,9 @@ class ReportVisualizations:
     def _save_figure(fig: plt.Figure) -> BytesIO:
         """Render *fig* to a PNG ``BytesIO`` and close it."""
         buf = BytesIO()
-        fig.savefig(buf, format="png", dpi=ReportVisualizations.DPI, bbox_inches="tight")
+        fig.savefig(
+            buf, format="png", dpi=ReportVisualizations.DPI, bbox_inches="tight"
+        )
         buf.seek(0)
         plt.close(fig)
         return buf
@@ -236,7 +238,9 @@ class ReportVisualizations:
         obs["date"] = pd.to_datetime(obs["date"])
         obs["month"] = obs["date"].dt.month
 
-        monthly = obs.groupby("month")["ndvi"].agg(["mean", "std"]).reindex(range(1, 13))
+        monthly = (
+            obs.groupby("month")["ndvi"].agg(["mean", "std"]).reindex(range(1, 13))
+        )
         monthly["std"] = monthly["std"].fillna(0)
 
         months = monthly.index.values
@@ -273,8 +277,18 @@ class ReportVisualizations:
                 )
 
         month_labels = [
-            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
         ]
         ax.set_xticks(range(1, 13))
         ax.set_xticklabels(month_labels)
@@ -333,7 +347,11 @@ class ReportVisualizations:
         # Count by risk level
         risk_counts: Dict[str, int] = {}
         for r in verification_results:
-            level = r.get("risk_level", "unknown") if isinstance(r, dict) else getattr(r, "risk_level", "unknown")
+            level = (
+                r.get("risk_level", "unknown")
+                if isinstance(r, dict)
+                else getattr(r, "risk_level", "unknown")
+            )
             risk_counts[level] = risk_counts.get(level, 0) + 1
 
         # Order: critical → high → medium → low
@@ -464,7 +482,9 @@ class ReportVisualizations:
             rad = np.radians(angle_deg)
             lx = 0.5 + 0.52 * np.cos(rad)
             ly = 0.52 * np.sin(rad)
-            ax.text(lx, ly, str(val), ha="center", va="center", fontsize=9, color="#444444")
+            ax.text(
+                lx, ly, str(val), ha="center", va="center", fontsize=9, color="#444444"
+            )
 
         # Status label
         if score >= 70:
@@ -522,8 +542,15 @@ class ReportVisualizations:
         fig, ax = plt.subplots(figsize=(10, max(4, len(features) * 0.5 + 1)))
 
         if not features:
-            ax.text(0.5, 0.5, "No features available", ha="center", va="center",
-                    fontsize=14, transform=ax.transAxes)
+            ax.text(
+                0.5,
+                0.5,
+                "No features available",
+                ha="center",
+                va="center",
+                fontsize=14,
+                transform=ax.transAxes,
+            )
             ax.axis("off")
             fig.tight_layout()
             return self._save_figure(fig)
@@ -536,7 +563,9 @@ class ReportVisualizations:
         values = [f["value"] for f in sorted_feats]
         colors = [_BRAND_LIGHT_BLUE if v >= 0 else "#d62728" for v in values]
 
-        ax.barh(names, values, color=colors, edgecolor="black", linewidth=0.3, alpha=0.85)
+        ax.barh(
+            names, values, color=colors, edgecolor="black", linewidth=0.3, alpha=0.85
+        )
 
         # Value labels
         for i, (name, val) in enumerate(zip(names, values)):
@@ -558,5 +587,7 @@ class ReportVisualizations:
         ax.grid(True, alpha=0.3, axis="x")
         fig.tight_layout()
 
-        logger.debug("Created feature importance chart (%d features)", len(sorted_feats))
+        logger.debug(
+            "Created feature importance chart (%d features)", len(sorted_feats)
+        )
         return self._save_figure(fig)

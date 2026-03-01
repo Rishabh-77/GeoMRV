@@ -45,7 +45,6 @@ from src.evidence_generation.package_schema import (
 from src.evidence_generation.visualizations import ReportVisualizations
 from src.evidence_generation.report_generator import PDFReportGenerator
 
-
 # ────────────────────────────────────────────────────────────
 # Test Fixtures — reusable building blocks
 # ────────────────────────────────────────────────────────────
@@ -139,7 +138,9 @@ def _make_valid_package(**overrides) -> EvidencePackage:
         verification_results=[
             _make_verification_result(rule_id="R1", status="pass"),
             _make_verification_result(rule_id="R2", status="flag", risk_level="medium"),
-            _make_verification_result(rule_id="R3", status="flag", risk_level="critical"),
+            _make_verification_result(
+                rule_id="R3", status="flag", risk_level="critical"
+            ),
         ],
         analyst="GeoMRV Automated Pipeline",
         methodology_version="1.0.0",
@@ -215,10 +216,12 @@ class TestVisualizationNDVITimeseries:
     def test_small_dataset(self):
         """Even 2 points should work (no smoothing)."""
         viz = ReportVisualizations()
-        df = pd.DataFrame({
-            "date": pd.date_range("2025-01-01", periods=2, freq="30D"),
-            "ndvi": [0.3, 0.4],
-        })
+        df = pd.DataFrame(
+            {
+                "date": pd.date_range("2025-01-01", periods=2, freq="30D"),
+                "ndvi": [0.3, 0.4],
+            }
+        )
         buf = viz.create_ndvi_timeseries(df)
         assert isinstance(buf, BytesIO)
         assert buf.read()[:4] == b"\x89PNG"
@@ -237,10 +240,12 @@ class TestVisualizationSeasonalPattern:
     def test_single_month_data(self):
         """Should still render even if data covers only one month."""
         viz = ReportVisualizations()
-        df = pd.DataFrame({
-            "date": pd.date_range("2025-06-01", periods=5, freq="2D"),
-            "ndvi": [0.5, 0.52, 0.48, 0.55, 0.51],
-        })
+        df = pd.DataFrame(
+            {
+                "date": pd.date_range("2025-06-01", periods=5, freq="2D"),
+                "ndvi": [0.5, 0.52, 0.48, 0.55, 0.51],
+            }
+        )
         buf = viz.create_seasonal_pattern(df)
         assert isinstance(buf, BytesIO)
 
@@ -562,19 +567,27 @@ class TestPDFReportGeneratorFullReport:
         pkg = _make_valid_package(
             verification_results=[
                 _make_verification_result(
-                    rule_id="R1", status="flag", risk_level="critical",
+                    rule_id="R1",
+                    status="flag",
+                    risk_level="critical",
                     rule_name="Abrupt NDVI Drop",
                 ),
                 _make_verification_result(
-                    rule_id="R2", status="flag", risk_level="high",
+                    rule_id="R2",
+                    status="flag",
+                    risk_level="high",
                     rule_name="Low Observations",
                 ),
                 _make_verification_result(
-                    rule_id="R3", status="flag", risk_level="medium",
+                    rule_id="R3",
+                    status="flag",
+                    risk_level="medium",
                     rule_name="Seasonal Anomaly",
                 ),
                 _make_verification_result(
-                    rule_id="R4", status="pass", risk_level="low",
+                    rule_id="R4",
+                    status="pass",
+                    risk_level="low",
                     rule_name="Data Quality Check",
                 ),
             ],
@@ -610,7 +623,9 @@ class TestPDFReportGeneratorFullReport:
         pkg = _make_valid_package(
             processing_chain=[
                 _make_processing_step(
-                    1, operation="data_fetch", status="failed",
+                    1,
+                    operation="data_fetch",
+                    status="failed",
                     error_message="Timeout connecting to GEE",
                 ),
                 _make_processing_step(2, operation="retry_fetch", status="success"),
@@ -676,12 +691,14 @@ class TestEndToEndIntegration:
         sources = [
             _make_data_source(name="Sentinel-2", platform="ESA"),
             _make_data_source(
-                name="Landsat 8", platform="USGS",
+                name="Landsat 8",
+                platform="USGS",
                 collection="LANDSAT/LC08/C02/T1_L2",
                 spatial_resolution_m=30.0,
             ),
             _make_data_source(
-                name="MODIS", platform="NASA",
+                name="MODIS",
+                platform="NASA",
                 collection="MODIS/006/MOD13Q1",
                 spatial_resolution_m=250.0,
             ),

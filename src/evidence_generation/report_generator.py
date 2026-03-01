@@ -313,19 +313,28 @@ class PDFReportGenerator:
             Paragraph("Evidence &amp; Verification Report", self.styles["GeoSubtitle"])
         )
         elements.append(Spacer(1, 0.4 * inch))
-        elements.append(
-            Paragraph(pkg.project_name, self.styles["GeoSubtitle"])
-        )
+        elements.append(Paragraph(pkg.project_name, self.styles["GeoSubtitle"]))
         elements.append(Spacer(1, 0.6 * inch))
 
         # Metadata table
         status_colour = _STATUS_COLORS.get(pkg.overall_status, colors.black)
         data = [
-            [self._cell("Analysis Period"), self._cell(f"{pkg.analysis_period_start}  to  {pkg.analysis_period_end}")],
+            [
+                self._cell("Analysis Period"),
+                self._cell(
+                    f"{pkg.analysis_period_start}  to  {pkg.analysis_period_end}"
+                ),
+            ],
             [self._cell("Generated"), self._cell(pkg.generated_date)],
             [self._cell("Package ID"), self._cell(pkg.package_id)],
-            [self._cell("Growth Status"), self._cell(pkg.growth_classification.upper())],
-            [self._cell("Confidence Score"), self._cell(f"{pkg.confidence_score:.1f} / 100")],
+            [
+                self._cell("Growth Status"),
+                self._cell(pkg.growth_classification.upper()),
+            ],
+            [
+                self._cell("Confidence Score"),
+                self._cell(f"{pkg.confidence_score:.1f} / 100"),
+            ],
             [self._cell("Overall Status"), self._cell(pkg.overall_status)],
             [self._cell("Methodology"), self._cell(f"v{pkg.methodology_version}")],
         ]
@@ -367,12 +376,24 @@ class PDFReportGenerator:
 
         findings = [
             [self._header_cell("Metric"), self._header_cell("Value")],
-            [self._cell("Growth Classification"), self._cell(pkg.growth_classification.upper())],
-            [self._cell("Confidence Score"), self._cell(f"{pkg.confidence_score:.1f} / 100")],
+            [
+                self._cell("Growth Classification"),
+                self._cell(pkg.growth_classification.upper()),
+            ],
+            [
+                self._cell("Confidence Score"),
+                self._cell(f"{pkg.confidence_score:.1f} / 100"),
+            ],
             [self._cell("Overall Status"), self._cell(pkg.overall_status)],
-            [self._cell("Data Quality Score"), self._cell(f"{pkg.data_quality_score:.1f} / 100")],
+            [
+                self._cell("Data Quality Score"),
+                self._cell(f"{pkg.data_quality_score:.1f} / 100"),
+            ],
             [self._cell("Data Sources"), self._cell(str(len(pkg.data_sources)))],
-            [self._cell("Processing Steps"), self._cell(str(pkg.processing_step_count))],
+            [
+                self._cell("Processing Steps"),
+                self._cell(str(pkg.processing_step_count)),
+            ],
             [self._cell("Verification Flags"), self._cell(str(pkg.flag_count))],
             [self._cell("Critical Flags"), self._cell(str(pkg.critical_flag_count))],
         ]
@@ -385,7 +406,9 @@ class PDFReportGenerator:
         try:
             gauge_buf = self._viz.create_confidence_gauge(pkg.confidence_score)
             elements.append(Image(gauge_buf, width=4 * inch, height=2.5 * inch))
-            elements.append(Paragraph("Figure 1: Confidence Score Gauge", self.styles["GeoCaption"]))
+            elements.append(
+                Paragraph("Figure 1: Confidence Score Gauge", self.styles["GeoCaption"])
+            )
         except Exception as exc:
             logger.warning("Could not render confidence gauge: %s", exc)
 
@@ -476,13 +499,9 @@ class PDFReportGenerator:
             try:
                 feat_dicts = [f.to_dict() for f in pkg.key_features]
                 feat_buf = self._viz.create_feature_importance(feat_dicts)
+                elements.append(Image(feat_buf, width=5.5 * inch, height=3 * inch))
                 elements.append(
-                    Image(feat_buf, width=5.5 * inch, height=3 * inch)
-                )
-                elements.append(
-                    Paragraph(
-                        "Figure 2: Key Feature Values", self.styles["GeoCaption"]
-                    )
+                    Paragraph("Figure 2: Key Feature Values", self.styles["GeoCaption"])
                 )
                 elements.append(Spacer(1, 0.2 * inch))
             except Exception as exc:
@@ -497,9 +516,7 @@ class PDFReportGenerator:
                 elements.append(
                     Paragraph("3.2 NDVI Time Series", self.styles["GeoHeading"])
                 )
-                elements.append(
-                    Image(ts_buf, width=6 * inch, height=3 * inch)
-                )
+                elements.append(Image(ts_buf, width=6 * inch, height=3 * inch))
                 elements.append(
                     Paragraph(
                         f"Figure {figure_num}: NDVI Time Series with Trend",
@@ -517,9 +534,7 @@ class PDFReportGenerator:
                 elements.append(
                     Paragraph("3.3 Seasonal Pattern", self.styles["GeoHeading"])
                 )
-                elements.append(
-                    Image(seasonal_buf, width=5.5 * inch, height=3 * inch)
-                )
+                elements.append(Image(seasonal_buf, width=5.5 * inch, height=3 * inch))
                 elements.append(
                     Paragraph(
                         f"Figure {figure_num}: Monthly Seasonal NDVI Pattern",
@@ -535,15 +550,11 @@ class PDFReportGenerator:
     def _build_verification_section(self, pkg: EvidencePackage) -> list:
         """Verification rule outcomes."""
         elements: list = []
-        elements.append(
-            Paragraph("4. Verification Results", self.styles["GeoHeading"])
-        )
+        elements.append(Paragraph("4. Verification Results", self.styles["GeoHeading"]))
 
         if not pkg.verification_results:
             elements.append(
-                Paragraph(
-                    "No verification results available.", self.styles["GeoBody"]
-                )
+                Paragraph("No verification results available.", self.styles["GeoBody"])
             )
             return elements
 
@@ -602,14 +613,10 @@ class PDFReportGenerator:
         try:
             # Only show flagged results in chart
             flagged = [
-                vr.to_dict()
-                for vr in pkg.verification_results
-                if vr.status != "pass"
+                vr.to_dict() for vr in pkg.verification_results if vr.status != "pass"
             ]
             vr_buf = self._viz.create_verification_summary(flagged)
-            elements.append(
-                Image(vr_buf, width=5 * inch, height=2.8 * inch)
-            )
+            elements.append(Image(vr_buf, width=5 * inch, height=2.8 * inch))
             elements.append(
                 Paragraph(
                     "Figure: Verification Flag Distribution",
@@ -624,9 +631,7 @@ class PDFReportGenerator:
     def _build_lineage_section(self, pkg: EvidencePackage) -> list:
         """Processing lineage / audit trail."""
         elements: list = []
-        elements.append(
-            Paragraph("5. Processing Lineage", self.styles["GeoHeading"])
-        )
+        elements.append(Paragraph("5. Processing Lineage", self.styles["GeoHeading"]))
         elements.append(
             Paragraph(
                 "Complete processing chain for full transparency and reproducibility. "
@@ -650,7 +655,10 @@ class PDFReportGenerator:
             elements.append(Paragraph(step_title, self.styles["GeoBody"]))
 
             details = [
-                [self._cell("Timestamp"), self._cell(step.timestamp[:19] if step.timestamp else "—")],
+                [
+                    self._cell("Timestamp"),
+                    self._cell(step.timestamp[:19] if step.timestamp else "—"),
+                ],
                 [self._cell("Status"), self._cell(step.status.upper())],
                 [self._cell("Duration"), self._cell(f"{step.duration_ms} ms")],
                 [self._cell("Script Version"), self._cell(step.script_version)],
@@ -686,7 +694,9 @@ class PDFReportGenerator:
     def _build_appendix(self, pkg: EvidencePackage) -> list:
         """Appendix with package metadata and checksum."""
         elements: list = []
-        elements.append(Paragraph("Appendix: Package Metadata", self.styles["GeoHeading"]))
+        elements.append(
+            Paragraph("Appendix: Package Metadata", self.styles["GeoHeading"])
+        )
 
         meta_data = [
             [self._header_cell("Field"), self._header_cell("Value")],
@@ -694,8 +704,14 @@ class PDFReportGenerator:
             [self._cell("Project ID"), self._cell(pkg.project_id)],
             [self._cell("Analyst"), self._cell(pkg.analyst)],
             [self._cell("Methodology Version"), self._cell(pkg.methodology_version)],
-            [self._cell("Data Quality Score"), self._cell(f"{pkg.data_quality_score:.1f}")],
-            [self._cell("Checksum (SHA-256)"), self._cell(pkg.checksum if pkg.checksum else "Not sealed")],
+            [
+                self._cell("Data Quality Score"),
+                self._cell(f"{pkg.data_quality_score:.1f}"),
+            ],
+            [
+                self._cell("Checksum (SHA-256)"),
+                self._cell(pkg.checksum if pkg.checksum else "Not sealed"),
+            ],
             [self._cell("Overall Status"), self._cell(pkg.overall_status)],
             [self._cell("Generated Date"), self._cell(pkg.generated_date)],
         ]
