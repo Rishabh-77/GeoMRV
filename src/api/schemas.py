@@ -209,6 +209,27 @@ class FeatureSet(BaseModel):
 # ─────────────────────────────────────────────────────────────
 
 
+class EvidenceGenerateRequest(BaseModel):
+    """Schema for requesting evidence package generation."""
+
+    start_date: date
+    end_date: date
+
+
+class EvidenceGenerateResponse(BaseModel):
+    """Schema returned after evidence package generation."""
+
+    package_id: str
+    project_id: str
+    status: str
+    growth_classification: str | None = None
+    confidence_score: float | None = None
+    overall_status: str | None = None
+    blob_path: str | None = None
+    checksum: str | None = None
+    pdf_path: str | None = None
+
+
 class EvidencePackageResponse(BaseModel):
     """Schema for evidence package responses."""
 

@@ -24,6 +24,18 @@ Use this checklist to confirm a dev environment is ready and track implementatio
 - [x] `pytest -v` runs
 - [ ] `black --check src tests` passes
 
+## Phase 3 Deliverables Verification (Task 3.3 scope)
+- [x] `PackageAssemblyService` implemented (`src/evidence_generation/package_assembly.py`)
+- [x] `EvidenceStorageService` implemented (`src/evidence_generation/storage_service.py`)
+- [x] Evidence API endpoints implemented (`POST /api/v1/evidence/{project_id}/generate`, `GET /api/v1/evidence/{id}/download`)
+- [x] Integration suite added (`tests/test_evidence_pipeline.py`)
+- [x] Manual end-to-end verification completed (2026-03-01)
+	- [x] Generate returns package metadata + checksum
+	- [x] Get/list endpoints return persisted evidence row
+	- [x] Download endpoint returns valid PDF (`%PDF-` header)
+- [x] Phase 3.4 full acceptance run completed in stable DB environment
+	- [x] `python -m pytest tests/test_evidence_pipeline.py -v` → `60 passed` (2026-03-01)
+
 ## CI
 - [ ] Opened a PR to `main`/`develop`
 - [ ] All required checks pass before merge

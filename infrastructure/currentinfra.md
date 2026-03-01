@@ -183,14 +183,16 @@ geomrv/
    └── registry_service.py      # Register / activate / deprecate / list / get_active
    ```
 
-5. **Evidence Generation module** (✅ Tasks 3.1–3.2 – schema, validation, visualizations & PDF reports)
+5. **Evidence Generation module** (✅ Tasks 3.1–3.3 – schema, validation, visualizations, PDF reports, assembly & storage)
    ```
    src/evidence_generation/
    ├── __init__.py              # Public exports
    ├── package_schema.py        # EvidencePackage + DataSource + ProcessingStep + VerificationResult + Feature
    ├── package_validator.py     # EvidencePackageValidator + ValidationReport
    ├── visualizations.py        # ReportVisualizations (5 chart types, PNG buffers)
-   └── report_generator.py      # PDFReportGenerator (7-section audit-ready PDF)
+   ├── report_generator.py      # PDFReportGenerator (7-section audit-ready PDF)
+   ├── package_assembly.py      # PackageAssemblyService (DB -> sealed evidence package)
+   └── storage_service.py       # EvidenceStorageService (Azure Blob + local fallback)
    ```
 ## Alignment summary
 
@@ -203,13 +205,11 @@ Already present (✅):
 - `src/feature_extraction/*` (Task 1.4)
 - `src/verification_rules/*` (Task 1.5)
 - `src/ml_models/*` (Tasks 2.1 – 2.4, including runtime registry integration)
-- `src/evidence_generation/*` (Tasks 3.1–3.2 – schema, validation, visualizations, PDF reports)
+- `src/evidence_generation/*` (Tasks 3.1–3.3 – schema, validation, visualizations, PDF reports, assembly/storage)
 - `tests/` (test_setup, test_projects, test_jobs, test_satellite_fetcher, test_verification_rules, test_inference_service, test_package_schema, test_report_generation)
 - `.env.example`, `.gitignore`, `requirements.txt`
 
-Not created yet (⏳) — add when continuing Phase 3:
-- `src/evidence_generation/package_assembly.py` ← Task 3.3
-- `src/evidence_generation/storage_service.py` ← Task 3.3
+Not created yet (⏳) — pending/non-blocking:
 - `database/migrations/001_initial_schema.sql`
 - `database/README.md`
 - Optional infra scaffolding: `infrastructure/terraform/`, `infrastructure/docker/`
@@ -217,6 +217,6 @@ Not created yet (⏳) — add when continuing Phase 3:
 ## What to create next (recommended order)
 
 1. ~~Report visualizations + PDF generator~~ (✅ Task 3.2 complete)
-2. Package assembly + storage: `src/evidence_generation/package_assembly.py`, `storage_service.py` (Task 3.3)
+2. ~~Package assembly + storage~~ (✅ Task 3.3 complete)
 3. Database docs + migrations: `database/README.md` and `database/migrations/`
 4. Optional infra scaffolding: `infrastructure/terraform/`, `infrastructure/docker/`
