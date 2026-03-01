@@ -2,11 +2,12 @@
 GeoMRV Evidence Generation
 ===========================
 Audit-ready evidence packaging, validation, report generation,
-and storage for carbon credit verification.
+assembly, and storage for carbon credit verification.
 
 Phase 3 – Weeks 10–11.
 """
 
+from src.evidence_generation.package_assembly import PackageAssemblyService
 from src.evidence_generation.package_schema import (
     DataSource,
     EvidencePackage,
@@ -16,6 +17,7 @@ from src.evidence_generation.package_schema import (
 )
 from src.evidence_generation.package_validator import EvidencePackageValidator
 from src.evidence_generation.report_generator import PDFReportGenerator
+from src.evidence_generation.storage_service import EvidenceStorageService
 from src.evidence_generation.visualizations import ReportVisualizations
 
 __all__ = [
@@ -25,6 +27,8 @@ __all__ = [
     "ProcessingStep",
     "VerificationResult",
     "EvidencePackageValidator",
+    "PackageAssemblyService",
     "PDFReportGenerator",
+    "EvidenceStorageService",
     "ReportVisualizations",
 ]
