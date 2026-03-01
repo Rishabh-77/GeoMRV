@@ -183,12 +183,14 @@ geomrv/
    └── registry_service.py      # Register / activate / deprecate / list / get_active
    ```
 
-5. **Evidence Generation module** (✅ Task 3.1 – schema & validation)
+5. **Evidence Generation module** (✅ Tasks 3.1–3.2 – schema, validation, visualizations & PDF reports)
    ```
    src/evidence_generation/
    ├── __init__.py              # Public exports
    ├── package_schema.py        # EvidencePackage + DataSource + ProcessingStep + VerificationResult + Feature
-   └── package_validator.py     # EvidencePackageValidator + ValidationReport
+   ├── package_validator.py     # EvidencePackageValidator + ValidationReport
+   ├── visualizations.py        # ReportVisualizations (5 chart types, PNG buffers)
+   └── report_generator.py      # PDFReportGenerator (7-section audit-ready PDF)
    ```
 ## Alignment summary
 
@@ -201,13 +203,11 @@ Already present (✅):
 - `src/feature_extraction/*` (Task 1.4)
 - `src/verification_rules/*` (Task 1.5)
 - `src/ml_models/*` (Tasks 2.1 – 2.4, including runtime registry integration)
-- `src/evidence_generation/*` (Task 3.1 – schema & validation)
-- `tests/` (test_setup, test_projects, test_jobs, test_satellite_fetcher, test_verification_rules, test_inference_service, test_package_schema)
+- `src/evidence_generation/*` (Tasks 3.1–3.2 – schema, validation, visualizations, PDF reports)
+- `tests/` (test_setup, test_projects, test_jobs, test_satellite_fetcher, test_verification_rules, test_inference_service, test_package_schema, test_report_generation)
 - `.env.example`, `.gitignore`, `requirements.txt`
 
 Not created yet (⏳) — add when continuing Phase 3:
-- `src/evidence_generation/visualizations.py` ← Task 3.2
-- `src/evidence_generation/report_generator.py` ← Task 3.2
 - `src/evidence_generation/package_assembly.py` ← Task 3.3
 - `src/evidence_generation/storage_service.py` ← Task 3.3
 - `database/migrations/001_initial_schema.sql`
@@ -216,7 +216,7 @@ Not created yet (⏳) — add when continuing Phase 3:
 
 ## What to create next (recommended order)
 
-1. Report visualizations + PDF generator: `src/evidence_generation/visualizations.py`, `report_generator.py` (Task 3.2)
+1. ~~Report visualizations + PDF generator~~ (✅ Task 3.2 complete)
 2. Package assembly + storage: `src/evidence_generation/package_assembly.py`, `storage_service.py` (Task 3.3)
 3. Database docs + migrations: `database/README.md` and `database/migrations/`
 4. Optional infra scaffolding: `infrastructure/terraform/`, `infrastructure/docker/`

@@ -15,6 +15,8 @@ from src.evidence_generation.package_schema import (
     VerificationResult,
 )
 from src.evidence_generation.package_validator import EvidencePackageValidator
+from src.evidence_generation.report_generator import PDFReportGenerator
+from src.evidence_generation.visualizations import ReportVisualizations
 
 __all__ = [
     "DataSource",
@@ -23,4 +25,6 @@ __all__ = [
     "ProcessingStep",
     "VerificationResult",
     "EvidencePackageValidator",
+    "PDFReportGenerator",
+    "ReportVisualizations",
 ]
