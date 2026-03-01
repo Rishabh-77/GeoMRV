@@ -290,9 +290,7 @@ class EvidencePackageValidator:
                 if not feat.name:
                     report.errors.append(f"Feature [{i}]: missing name")
                 if not feat.unit:
-                    report.warnings.append(
-                        f"Feature [{i}] ({feat.name}): missing unit"
-                    )
+                    report.warnings.append(f"Feature [{i}] ({feat.name}): missing unit")
                 if feat.source and feat.source not in Feature.VALID_SOURCES:
                     report.warnings.append(
                         f"Feature [{i}] ({feat.name}): source '{feat.source}' "
@@ -317,7 +315,10 @@ class EvidencePackageValidator:
                     f"Verification result [{i}] ({vr.rule_id}): "
                     f"status '{vr.status}' is not standard"
                 )
-            if vr.risk_level and vr.risk_level not in VerificationResult.VALID_RISK_LEVELS:
+            if (
+                vr.risk_level
+                and vr.risk_level not in VerificationResult.VALID_RISK_LEVELS
+            ):
                 report.warnings.append(
                     f"Verification result [{i}] ({vr.rule_id}): "
                     f"risk_level '{vr.risk_level}' is not standard"

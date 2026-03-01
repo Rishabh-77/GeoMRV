@@ -53,7 +53,6 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-
 # ──────────────────────────────────────────────────────────────
 # Supporting dataclasses
 # ──────────────────────────────────────────────────────────────
@@ -427,11 +426,7 @@ class EvidencePackage:
     @property
     def critical_flag_count(self) -> int:
         """Number of critical-level verification flags."""
-        return sum(
-            1
-            for v in self.verification_results
-            if v.risk_level == "critical"
-        )
+        return sum(1 for v in self.verification_results if v.risk_level == "critical")
 
     @property
     def processing_step_count(self) -> int:

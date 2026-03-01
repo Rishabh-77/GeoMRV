@@ -28,7 +28,6 @@ from src.evidence_generation.package_validator import (
     ValidationReport,
 )
 
-
 # ────────────────────────────────────────────────────────────
 # Test Fixtures — reusable building blocks
 # ────────────────────────────────────────────────────────────
@@ -110,8 +109,12 @@ def _make_valid_package(**overrides) -> EvidencePackage:
         ],
         key_features=[
             _make_feature(name="ndvi_mean", value=0.52, unit="index"),
-            _make_feature(name="trend_slope", value=0.005, unit="index/day", source="calculation"),
-            _make_feature(name="biomass_estimate", value=45.2, unit="t/ha", source="ml_model"),
+            _make_feature(
+                name="trend_slope", value=0.005, unit="index/day", source="calculation"
+            ),
+            _make_feature(
+                name="biomass_estimate", value=45.2, unit="t/ha", source="ml_model"
+            ),
         ],
         growth_classification="growth",
         confidence_score=85.0,
@@ -213,8 +216,10 @@ class TestVerificationResult:
 
     def test_from_dict_round_trip(self):
         original = _make_verification_result(
-            rule_id="R5", rule_name="Vegetation Loss",
-            status="critical", risk_level="critical",
+            rule_id="R5",
+            rule_name="Vegetation Loss",
+            status="critical",
+            risk_level="critical",
         )
         restored = VerificationResult.from_dict(original.to_dict())
         assert restored.rule_id == "R5"
@@ -271,9 +276,7 @@ class TestEvidencePackageCreation:
         pkg = _make_valid_package()
         assert pkg.flag_count == 0  # all pass
 
-        pkg.verification_results.append(
-            _make_verification_result(status="flag")
-        )
+        pkg.verification_results.append(_make_verification_result(status="flag"))
         assert pkg.flag_count == 1
 
     def test_critical_flag_count(self):
@@ -463,7 +466,8 @@ class TestValidationReport:
 
     def test_to_dict(self):
         report = ValidationReport(
-            errors=["err1"], warnings=["warn1"],
+            errors=["err1"],
+            warnings=["warn1"],
             checked_at="2026-03-01T12:00:00",
             package_id="test-pkg",
         )
@@ -648,7 +652,9 @@ class TestValidatorVerification:
 
     def test_critical_flags_warn(self):
         vrs = [
-            _make_verification_result(rule_id="R5", status="critical", risk_level="critical"),
+            _make_verification_result(
+                rule_id="R5", status="critical", risk_level="critical"
+            ),
         ]
         pkg = _make_valid_package(verification_results=vrs)
         report = self.validator.validate(pkg)
@@ -787,15 +793,24 @@ class TestFullWorkflow:
                 ),
             ],
             key_features=[
-                Feature(name="ndvi_mean", value=0.55, unit="index", source="satellite_data"),
-                Feature(name="trend_slope", value=0.004, unit="index/day", source="calculation"),
+                Feature(
+                    name="ndvi_mean", value=0.55, unit="index", source="satellite_data"
+                ),
+                Feature(
+                    name="trend_slope",
+                    value=0.004,
+                    unit="index/day",
+                    source="calculation",
+                ),
             ],
             growth_classification="growth",
             confidence_score=82.0,
             verification_results=[
                 VerificationResult(
-                    rule_id="R1", rule_name="Insufficient Observations",
-                    status="pass", risk_level="medium",
+                    rule_id="R1",
+                    rule_name="Insufficient Observations",
+                    status="pass",
+                    risk_level="medium",
                     description="48 observations (threshold: 12)",
                     recommendation="No action required",
                 ),
