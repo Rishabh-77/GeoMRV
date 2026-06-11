@@ -311,7 +311,12 @@ class PackageAssemblyService:
             ("ndvi_min", ndvi_stats.get("min"), "index", "satellite_data"),
             ("ndvi_max", ndvi_stats.get("max"), "index", "satellite_data"),
             ("trend_slope", trend.get("trend_slope"), "index/day", "calculation"),
-            ("slope_per_year", trend.get("slope_per_year"), "index/year", "calculation"),
+            (
+                "slope_per_year",
+                trend.get("slope_per_year"),
+                "index/year",
+                "calculation",
+            ),
             (
                 "seasonal_amplitude",
                 seasonality.get("seasonal_amplitude"),
