@@ -187,9 +187,7 @@ class PackageAssemblyService:
         # Fallback for older logs without period metadata: include the latest
         # successful entries per operation so evidence generation still works.
         fallback_stmt = (
-            select(Job)
-            .where(Job.project_id == pid)
-            .order_by(Job.created_at)
+            select(Job).where(Job.project_id == pid).order_by(Job.created_at)
         )
         all_rows = list(self.db.execute(fallback_stmt).scalars().all())
         latest_by_operation: dict[str, Job] = {}
@@ -301,7 +299,12 @@ class PackageAssemblyService:
                 ("ndvi_min", ndvi_stats.get("min"), "index", "satellite_data"),
                 ("ndvi_max", ndvi_stats.get("max"), "index", "satellite_data"),
                 ("trend_slope", trend.get("trend_slope"), "index/day", "calculation"),
-                ("slope_per_year", trend.get("slope_per_year"), "index/year", "calculation"),
+                (
+                    "slope_per_year",
+                    trend.get("slope_per_year"),
+                    "index/year",
+                    "calculation",
+                ),
                 (
                     "seasonal_amplitude",
                     seasonality.get("seasonal_amplitude"),
@@ -309,7 +312,12 @@ class PackageAssemblyService:
                     "calculation",
                 ),
                 ("biomass_mean", biomass.get("mean"), "t/ha", "ml_model"),
-                ("total_observations", od.get("total_observations"), "count", "satellite_data"),
+                (
+                    "total_observations",
+                    od.get("total_observations"),
+                    "count",
+                    "satellite_data",
+                ),
             ]
             for name, value, unit, source in feature_specs:
                 if value is not None:
@@ -319,7 +327,9 @@ class PackageAssemblyService:
                             value=float(value),
                             unit=unit,
                             uncertainty=(
-                                float(ndvi_stats.get("std", 0)) if name == "ndvi_mean" else 0.0
+                                float(ndvi_stats.get("std", 0))
+                                if name == "ndvi_mean"
+                                else 0.0
                             ),
                             source=source,
                             description=name.replace("_", " ").title(),
@@ -329,7 +339,9 @@ class PackageAssemblyService:
         if not features and observations:
             ndvi_values = [o.ndvi for o in observations if o.ndvi is not None]
             if ndvi_values:
-                uncertainty = statistics.stdev(ndvi_values) if len(ndvi_values) > 1 else 0.0
+                uncertainty = (
+                    statistics.stdev(ndvi_values) if len(ndvi_values) > 1 else 0.0
+                )
                 features.extend(
                     [
                         Feature(
@@ -421,7 +433,11 @@ class PackageAssemblyService:
         if not observations:
             return score
         score += min(len(observations) / 5, 20)
-        cloud_vals = [o.cloud_cover_percent for o in observations if o.cloud_cover_percent is not None]
+        cloud_vals = [
+            o.cloud_cover_percent
+            for o in observations
+            if o.cloud_cover_percent is not None
+        ]
         if cloud_vals:
             score += max(0, 15 - (sum(cloud_vals) / len(cloud_vals)) / 5)
         score += min(len(features) * 2, 15)
