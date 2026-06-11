@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from src.api.database import get_db
 from src.api.schemas import JobCreate, JobResponse, ObservationResponse
-from src.api.services.job_service import JobService
+from src.api.services.job_service import JobService, process_job_background
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -45,10 +45,15 @@ def create_job(
     svc: JobService = Depends(_svc),
 ) -> JobResponse:
     """Create a new processing job and start background satellite fetch."""
-    job = svc.create_job(payload)
+    try:
+        job = svc.create_job(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    # Schedule background processing
-    background_tasks.add_task(svc.process_job, UUID(job.id))
+    # Schedule background processing with a fresh DB session.
+    background_tasks.add_task(process_job_background, job.id)
 
     return job
 

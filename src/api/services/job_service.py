@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from src.api.models import Boundary, Job, Observation, Project
 from src.api.schemas import JobCreate, JobResponse
+from src.satellite_services.data_fetcher import SatelliteDataFetcher
 
 logger = logging.getLogger(__name__)
 
@@ -70,9 +71,25 @@ class JobService:
     # ── create ────────────────────────────────────────────────
 
     def create_job(self, data: JobCreate) -> JobResponse:
-        """Persist a new job in *pending* state and return its response."""
+        """Persist a new job in *pending* state and return its response.
+
+        Raises
+        ------
+        ValueError
+            If ``project_id`` is not a valid UUID.
+        LookupError
+            If the project does not exist.
+        """
+        try:
+            project_id = uuid.UUID(data.project_id)
+        except ValueError as exc:
+            raise ValueError("Invalid project_id") from exc
+
+        if self.db.get(Project, project_id) is None:
+            raise LookupError(f"Project {project_id} not found")
+
         job = Job(
-            project_id=uuid.UUID(data.project_id),
+            project_id=project_id,
             operation_type=data.job_type.value,
             status="pending",
             input_data={
@@ -92,8 +109,9 @@ class JobService:
         Background task: fetch satellite data for the job's project
         boundary and persist observations + processing log.
 
-        This method is designed to be called via
-        ``BackgroundTasks.add_task(service.process_job, job_id)``.
+        This method expects a live SQLAlchemy session owned by this service.
+        Use ``process_job_background`` when scheduling work from FastAPI
+        so the task opens and closes its own session safely.
         """
         start_time = time.time()
         job = self.db.get(Job, job_id)
@@ -121,8 +139,6 @@ class JobService:
                 raise ValueError(f"No boundary found for project {job.project_id}")
 
             # Fetch satellite data
-            from src.satellite_services.data_fetcher import SatelliteDataFetcher
-
             fetcher = SatelliteDataFetcher()
             input_data = job.input_data or {}
 
@@ -158,6 +174,7 @@ class JobService:
                     "start_date": input_data.get("start_date"),
                     "end_date": input_data.get("end_date"),
                     "source": "Sentinel-2",
+                    "collection": "COPERNICUS/S2_SR_HARMONIZED",
                 },
                 output_data={
                     "observations_stored": obs_count,
@@ -206,3 +223,18 @@ class JobService:
         if end_date:
             stmt = stmt.where(Observation.observation_date <= end_date)
         return list(self.db.execute(stmt).scalars().all())
+
+
+def process_job_background(job_id: uuid.UUID | str) -> None:
+    """Run job processing in a fresh database session.
+
+    FastAPI background tasks outlive the request context, so they should not
+    reuse the request-scoped session that created the job.
+    """
+    from src.api.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        JobService(db).process_job(uuid.UUID(str(job_id)))
+    finally:
+        db.close()

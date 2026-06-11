@@ -1,28 +1,57 @@
 """
 GeoMRV Processing Service
 =========================
-Orchestration for satellite data processing and evidence generation.
+Orchestration helpers for satellite data processing and evidence generation.
 """
 
 from __future__ import annotations
 
 import logging
+import uuid
 
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
 
-async def process_satellite_data(project_id: str, start_date: str, end_date: str):
-    """
-    Orchestrate satellite data fetching and processing.
+async def process_satellite_data(
+    project_id: str,
+    start_date: str,
+    end_date: str,
+    db: Session | None = None,
+) -> dict:
+    """Create and process a satellite monitoring job.
 
-    This is a stub - actual implementation will use:
-    - src.satellite_services.earth_engine_client
-    - src.satellite_services.ndvi_calculator
-    - src.satellite_services.timelapse_exporter
+    This wrapper keeps older orchestration callers working while delegating
+    to the canonical ``JobService`` implementation.
     """
-    raise NotImplementedError("Satellite processing not yet implemented")
+    from src.api.database import SessionLocal
+    from src.api.schemas import JobCreate, JobType
+    from src.api.services.job_service import JobService
+
+    owns_session = db is None
+    session = db or SessionLocal()
+    try:
+        svc = JobService(session)
+        job = svc.create_job(
+            JobCreate(
+                project_id=project_id,
+                start_date=start_date,
+                end_date=end_date,
+                job_type=JobType.MONITORING,
+            )
+        )
+        svc.process_job(uuid.UUID(job.id))
+        final_job = svc.get_job(uuid.UUID(job.id))
+        return {
+            "job_id": job.id,
+            "project_id": project_id,
+            "status": final_job.status if final_job else "unknown",
+            "error_message": final_job.error_message if final_job else None,
+        }
+    finally:
+        if owns_session:
+            session.close()
 
 
 async def generate_evidence_package(
@@ -36,21 +65,6 @@ async def generate_evidence_package(
     Delegates to :class:`PackageAssemblyService` for data assembly,
     :class:`PDFReportGenerator` for PDF creation, and
     :class:`EvidenceStorageService` for storage.
-
-    Parameters
-    ----------
-    project_id : str
-        UUID of the project.
-    start_date, end_date : str
-        ISO date boundaries of the analysis window.
-    db : Session
-        Active SQLAlchemy session.
-
-    Returns
-    -------
-    dict
-        Keys: ``package_id``, ``pdf_path``, ``blob_path``, ``checksum``,
-        ``overall_status``, ``confidence_score``, ``growth_classification``.
     """
     import os
     import tempfile
