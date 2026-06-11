@@ -2,36 +2,18 @@
 GeoMRV Evidence Package Assembly
 =================================
 Assembles audit-ready evidence packages from database records.
-
-Reads ``Project``, ``Job`` (processing_logs), and ``Observation``
-rows, then constructs a fully populated
-:class:`~src.evidence_generation.package_schema.EvidencePackage`
-dataclass ready for PDF generation and storage.
-
-Usage
------
-::
-
-    from sqlalchemy.orm import Session
-    from src.evidence_generation.package_assembly import PackageAssemblyService
-
-    service = PackageAssemblyService(db_session)
-    package = service.assemble_package(
-        project_id="<uuid>",
-        start_date="2025-01-01",
-        end_date="2025-12-31",
-    )
 """
 
 from __future__ import annotations
 
 import logging
+import statistics
 import uuid
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional, Sequence
 
 import pandas as pd
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from src.api.models import Job, Observation, Project
@@ -45,9 +27,6 @@ from src.evidence_generation.package_schema import (
 
 logger = logging.getLogger(__name__)
 
-# ── Mapping helpers ──────────────────────────────────────────
-
-# Recognised data-source collections that may appear in job input_data
 _COLLECTION_META: Dict[str, Dict[str, str]] = {
     "COPERNICUS/S2_SR_HARMONIZED": {
         "name": "Sentinel-2 L2A",
@@ -75,8 +54,6 @@ _COLLECTION_META: Dict[str, Dict[str, str]] = {
     },
 }
 
-_DEFAULT_SOURCE_NAME = "Sentinel-2 L2A"
-_DEFAULT_PLATFORM = "ESA Copernicus"
 _DEFAULT_COLLECTION = "COPERNICUS/S2_SR_HARMONIZED"
 _DEFAULT_URL = (
     "https://developers.google.com/earth-engine/datasets/catalog/"
@@ -84,26 +61,12 @@ _DEFAULT_URL = (
 )
 
 
-# ── Assembly service ─────────────────────────────────────────
-
-
 class PackageAssemblyService:
-    """Assemble evidence packages from database records.
-
-    Parameters
-    ----------
-    db : sqlalchemy.orm.Session
-        Active database session used to query projects, jobs, and
-        observations.
-    script_version : str
-        Version tag embedded in every ``ProcessingStep``.
-    """
+    """Assemble evidence packages from database records."""
 
     def __init__(self, db: Session, *, script_version: str = "0.1.0") -> None:
         self.db = db
         self.script_version = script_version
-
-    # ── public API ────────────────────────────────────────────
 
     def assemble_package(
         self,
@@ -111,27 +74,7 @@ class PackageAssemblyService:
         start_date: str,
         end_date: str,
     ) -> EvidencePackage:
-        """Build a complete :class:`EvidencePackage` for *project_id*.
-
-        Parameters
-        ----------
-        project_id : str
-            UUID of the project (string form).
-        start_date : str
-            ISO date – start of the analysis window (inclusive).
-        end_date : str
-            ISO date – end of the analysis window (inclusive).
-
-        Returns
-        -------
-        EvidencePackage
-            Sealed evidence package (checksum set).
-
-        Raises
-        ------
-        ValueError
-            If the project does not exist.
-        """
+        """Build a sealed :class:`EvidencePackage` for a project and period."""
         project = self._load_project(project_id)
         if project is None:
             raise ValueError(f"Project not found: {project_id}")
@@ -169,19 +112,7 @@ class PackageAssemblyService:
             overall_status=overall_status,
             summary=summary,
         )
-
         package.seal()
-        logger.info(
-            "Assembled evidence package %s for project %s (%s – %s), "
-            "%d steps, %d features, %d verifications",
-            package.package_id,
-            project.name,
-            start_date,
-            end_date,
-            len(processing_steps),
-            len(key_features),
-            len(verification_results),
-        )
         return package
 
     def build_observations_dataframe(
@@ -190,98 +121,104 @@ class PackageAssemblyService:
         start_date: str,
         end_date: str,
     ) -> pd.DataFrame:
-        """Return observation records as a :class:`pandas.DataFrame`.
-
-        Useful for passing to ``PDFReportGenerator.generate_report()``
-        when charts are required.
-        """
+        """Return observation records as a dataframe for report charts."""
         observations = self._load_observations(project_id, start_date, end_date)
         if not observations:
             return pd.DataFrame(columns=["date", "ndvi", "evi", "biomass_estimate"])
 
-        rows = []
-        for obs in observations:
-            rows.append(
-                {
-                    "date": obs.observation_date,
-                    "ndvi": obs.ndvi,
-                    "ndvi_std": obs.ndvi_std,
-                    "evi": obs.evi,
-                    "biomass_estimate": obs.biomass_estimate,
-                    "cloud_cover_percent": obs.cloud_cover_percent,
-                    "data_source": obs.data_source,
-                }
-            )
+        rows = [
+            {
+                "date": obs.observation_date,
+                "ndvi": obs.ndvi,
+                "ndvi_std": obs.ndvi_std,
+                "evi": obs.evi,
+                "biomass_estimate": obs.biomass_estimate,
+                "cloud_cover_percent": obs.cloud_cover_percent,
+                "data_source": obs.data_source,
+            }
+            for obs in observations
+        ]
         df = pd.DataFrame(rows)
         df["date"] = pd.to_datetime(df["date"])
         return df.sort_values("date").reset_index(drop=True)
 
-    # ── database loaders ──────────────────────────────────────
-
     def _load_project(self, project_id: str) -> Optional[Project]:
-        """Fetch the project row."""
         try:
-            pid = uuid.UUID(project_id)
+            return self.db.get(Project, uuid.UUID(project_id))
         except ValueError:
             return None
-        return self.db.get(Project, pid)
 
     def _load_jobs(
         self, project_id: str, start_date: str, end_date: str
     ) -> Sequence[Job]:
-        """Fetch processing_logs rows for the project in the window."""
+        """Fetch relevant processing logs for a project and analysis period.
+
+        Processing logs are created when the pipeline runs, not when the
+        analysed satellite observations occurred. Therefore this method matches
+        logs by their recorded input period rather than by ``created_at``.
+        """
         try:
             pid = uuid.UUID(project_id)
         except ValueError:
             return []
 
-        # Job timestamps are datetimes; interpret ISO date inputs as whole-day
-        # inclusive bounds in UTC-naive DB time.
-        sd = datetime.combine(_parse_date(start_date), time.min)
-        ed = datetime.combine(_parse_date(end_date), time.max)
+        period_match = and_(
+            or_(
+                Job.input_data["start_date"].astext == start_date,
+                Job.input_data["period_start"].astext == start_date,
+            ),
+            or_(
+                Job.input_data["end_date"].astext == end_date,
+                Job.input_data["period_end"].astext == end_date,
+            ),
+        )
 
         stmt = (
             select(Job)
-            .where(
-                and_(
-                    Job.project_id == pid,
-                    Job.created_at >= sd,
-                    Job.created_at <= ed,
-                )
-            )
+            .where(Job.project_id == pid)
+            .where(period_match)
             .order_by(Job.created_at)
         )
-        return list(self.db.execute(stmt).scalars().all())
+        rows = list(self.db.execute(stmt).scalars().all())
+
+        if rows:
+            return rows
+
+        # Fallback for older logs without period metadata: include the latest
+        # successful entries per operation so evidence generation still works.
+        fallback_stmt = (
+            select(Job)
+            .where(Job.project_id == pid)
+            .order_by(Job.created_at)
+        )
+        all_rows = list(self.db.execute(fallback_stmt).scalars().all())
+        latest_by_operation: dict[str, Job] = {}
+        for row in all_rows:
+            latest_by_operation[row.operation_type or "unknown"] = row
+        return list(latest_by_operation.values())
 
     def _load_observations(
         self, project_id: str, start_date: str, end_date: str
     ) -> Sequence[Observation]:
-        """Fetch observation rows for the project in the window."""
         try:
             pid = uuid.UUID(project_id)
         except ValueError:
             return []
-
-        sd = _parse_date(start_date)
-        ed = _parse_date(end_date)
 
         stmt = (
             select(Observation)
             .where(
                 and_(
                     Observation.project_id == pid,
-                    Observation.observation_date >= sd,
-                    Observation.observation_date <= ed,
+                    Observation.observation_date >= _parse_date(start_date),
+                    Observation.observation_date <= _parse_date(end_date),
                 )
             )
             .order_by(Observation.observation_date)
         )
         return list(self.db.execute(stmt).scalars().all())
 
-    # ── builders ──────────────────────────────────────────────
-
     def _build_processing_chain(self, jobs: Sequence[Job]) -> List[ProcessingStep]:
-        """Convert each :class:`Job` to a :class:`ProcessingStep`."""
         steps: List[ProcessingStep] = []
         for idx, job in enumerate(jobs, 1):
             steps.append(
@@ -307,14 +244,14 @@ class PackageAssemblyService:
     def _build_data_sources(
         self, jobs: Sequence[Job], start_date: str, end_date: str
     ) -> List[DataSource]:
-        """Infer data sources from job input_data."""
         seen_collections: set[str] = set()
         sources: List[DataSource] = []
 
         for job in jobs:
-            if not job.input_data:
-                continue
-            collection = job.input_data.get("collection", "")
+            input_data = job.input_data or {}
+            collection = input_data.get("collection")
+            if not collection and input_data.get("source") == "Sentinel-2":
+                collection = _DEFAULT_COLLECTION
             if collection and collection not in seen_collections:
                 seen_collections.add(collection)
                 meta = _COLLECTION_META.get(collection, {})
@@ -331,169 +268,90 @@ class PackageAssemblyService:
                     )
                 )
 
-        # Fallback: if no collection was found, add a default source
-        if not sources:
-            sources.append(
-                DataSource(
-                    name=_DEFAULT_SOURCE_NAME,
-                    platform=_DEFAULT_PLATFORM,
-                    collection=_DEFAULT_COLLECTION,
-                    access_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                    url=_DEFAULT_URL,
-                    spatial_resolution_m=10.0,
-                    temporal_range_start=start_date,
-                    temporal_range_end=end_date,
-                )
-            )
+        if sources:
+            return sources
 
-        return sources
+        return [
+            DataSource(
+                name="Sentinel-2 L2A",
+                platform="ESA Copernicus",
+                collection=_DEFAULT_COLLECTION,
+                access_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                url=_DEFAULT_URL,
+                spatial_resolution_m=10.0,
+                temporal_range_start=start_date,
+                temporal_range_end=end_date,
+            )
+        ]
 
     def _extract_features(
         self, jobs: Sequence[Job], observations: Sequence[Observation]
     ) -> List[Feature]:
-        """Pull features from the feature_extraction job output_data."""
         features: List[Feature] = []
-
-        # --- from feature_extraction job ---
         feat_job = _find_job(jobs, "feature_extraction")
         if feat_job and feat_job.output_data:
             od = feat_job.output_data
-
-            # NDVI stats
             ndvi_stats = od.get("ndvi_stats", {})
-            if ndvi_stats.get("mean") is not None:
-                features.append(
-                    Feature(
-                        name="ndvi_mean",
-                        value=float(ndvi_stats["mean"]),
-                        unit="index",
-                        uncertainty=float(ndvi_stats.get("std", 0)),
-                        source="satellite_data",
-                        description="Mean NDVI over the analysis period",
-                    )
-                )
-            if ndvi_stats.get("min") is not None:
-                features.append(
-                    Feature(
-                        name="ndvi_min",
-                        value=float(ndvi_stats["min"]),
-                        unit="index",
-                        source="satellite_data",
-                        description="Minimum NDVI observed",
-                    )
-                )
-            if ndvi_stats.get("max") is not None:
-                features.append(
-                    Feature(
-                        name="ndvi_max",
-                        value=float(ndvi_stats["max"]),
-                        unit="index",
-                        source="satellite_data",
-                        description="Maximum NDVI observed",
-                    )
-                )
-
-            # Trend
             trend = od.get("trend", {})
-            if trend.get("trend_slope") is not None:
-                features.append(
-                    Feature(
-                        name="trend_slope",
-                        value=float(trend["trend_slope"]),
-                        unit="index/day",
-                        uncertainty=0.0,
-                        source="calculation",
-                        description="Linear trend slope of NDVI time-series",
-                    )
-                )
-            if trend.get("slope_per_year") is not None:
-                features.append(
-                    Feature(
-                        name="slope_per_year",
-                        value=float(trend["slope_per_year"]),
-                        unit="index/year",
-                        source="calculation",
-                        description="Annualised NDVI trend slope",
-                    )
-                )
-
-            # Seasonality
-            seas = od.get("seasonality", {})
-            if seas.get("seasonal_amplitude") is not None:
-                features.append(
-                    Feature(
-                        name="seasonal_amplitude",
-                        value=float(seas["seasonal_amplitude"]),
-                        unit="index",
-                        source="calculation",
-                        description="Seasonal NDVI amplitude (peak – trough)",
-                    )
-                )
-
-            # Biomass stats
+            seasonality = od.get("seasonality", {})
             biomass = od.get("biomass_stats", {})
-            if biomass.get("mean") is not None:
-                features.append(
-                    Feature(
-                        name="biomass_mean",
-                        value=float(biomass["mean"]),
-                        unit="t/ha",
-                        uncertainty=float(biomass.get("std", 0)),
-                        source="ml_model",
-                        description="Mean estimated above-ground biomass",
-                    )
-                )
 
-            # Observation counts
-            total_obs = od.get("total_observations")
-            if total_obs is not None:
-                features.append(
-                    Feature(
-                        name="total_observations",
-                        value=float(total_obs),
-                        unit="count",
-                        source="satellite_data",
-                        description="Total satellite observations in analysis period",
+            feature_specs = [
+                ("ndvi_mean", ndvi_stats.get("mean"), "index", "satellite_data"),
+                ("ndvi_min", ndvi_stats.get("min"), "index", "satellite_data"),
+                ("ndvi_max", ndvi_stats.get("max"), "index", "satellite_data"),
+                ("trend_slope", trend.get("trend_slope"), "index/day", "calculation"),
+                ("slope_per_year", trend.get("slope_per_year"), "index/year", "calculation"),
+                (
+                    "seasonal_amplitude",
+                    seasonality.get("seasonal_amplitude"),
+                    "index",
+                    "calculation",
+                ),
+                ("biomass_mean", biomass.get("mean"), "t/ha", "ml_model"),
+                ("total_observations", od.get("total_observations"), "count", "satellite_data"),
+            ]
+            for name, value, unit, source in feature_specs:
+                if value is not None:
+                    features.append(
+                        Feature(
+                            name=name,
+                            value=float(value),
+                            unit=unit,
+                            uncertainty=(
+                                float(ndvi_stats.get("std", 0)) if name == "ndvi_mean" else 0.0
+                            ),
+                            source=source,
+                            description=name.replace("_", " ").title(),
+                        )
                     )
-                )
 
-        # --- fallback from raw observations ---
         if not features and observations:
             ndvi_values = [o.ndvi for o in observations if o.ndvi is not None]
             if ndvi_values:
-                import statistics
-
-                features.append(
-                    Feature(
-                        name="ndvi_mean",
-                        value=round(statistics.mean(ndvi_values), 4),
-                        unit="index",
-                        uncertainty=round(
-                            (
-                                statistics.stdev(ndvi_values)
-                                if len(ndvi_values) > 1
-                                else 0.0
-                            ),
-                            4,
+                uncertainty = statistics.stdev(ndvi_values) if len(ndvi_values) > 1 else 0.0
+                features.extend(
+                    [
+                        Feature(
+                            name="ndvi_mean",
+                            value=round(statistics.mean(ndvi_values), 4),
+                            unit="index",
+                            uncertainty=round(uncertainty, 4),
+                            source="satellite_data",
+                            description="Mean NDVI from raw observations",
                         ),
-                        source="satellite_data",
-                        description="Mean NDVI (from raw observations)",
-                    )
+                        Feature(
+                            name="total_observations",
+                            value=float(len(ndvi_values)),
+                            unit="count",
+                            source="satellite_data",
+                            description="Number of satellite observations",
+                        ),
+                    ]
                 )
-                features.append(
-                    Feature(
-                        name="total_observations",
-                        value=float(len(ndvi_values)),
-                        unit="count",
-                        source="satellite_data",
-                        description="Number of satellite observations",
-                    )
-                )
-
         return features
 
     def _extract_verification(self, jobs: Sequence[Job]) -> List[VerificationResult]:
-        """Pull verification rule outcomes from the verification job."""
         results: List[VerificationResult] = []
         ver_job = _find_job(jobs, "verification")
         if not ver_job or not ver_job.output_data:
@@ -505,7 +363,7 @@ class PackageAssemblyService:
             results.append(
                 VerificationResult(
                     rule_id=flag.get("rule_id", ""),
-                    rule_name=flag.get("name", flag.get("rule_name", "")),
+                    rule_name=flag.get("rule_name", flag.get("name", "")),
                     status=(
                         "critical"
                         if risk == "critical"
@@ -513,11 +371,12 @@ class PackageAssemblyService:
                     ),
                     risk_level=risk,
                     description=flag.get("description", ""),
-                    recommendation=flag.get("recommendation", "Review flag"),
+                    recommendation=flag.get(
+                        "recommended_action", flag.get("recommendation", "Review flag")
+                    ),
                 )
             )
 
-        # Also include overall_status / classification if present
         overall = ver_job.output_data.get("overall_status")
         if overall and not results:
             results.append(
@@ -530,72 +389,50 @@ class PackageAssemblyService:
                     recommendation="Review report" if overall != "PASS" else "None",
                 )
             )
-
         return results
 
     def _extract_ml_results(self, jobs: Sequence[Job]) -> tuple[float, str]:
-        """Return (confidence_score, growth_classification) from ML job."""
+        """Return (confidence_score, growth_classification) from ML output."""
         ml_job = _find_job(jobs, "ml_scoring")
         if not ml_job or not ml_job.output_data:
             return 50.0, "stable"
 
         od = ml_job.output_data
-        # confidence may be 0-1 or 0-100
-        raw_confidence = od.get("confidence", od.get("confidence_score", 50))
-        if isinstance(raw_confidence, (int, float)):
-            confidence = float(raw_confidence)
-            if confidence <= 1.0:
-                confidence *= 100.0
-        else:
-            confidence = 50.0
+        growth = od.get("growth") if isinstance(od.get("growth"), dict) else {}
 
-        classification = od.get("prediction", od.get("growth_classification", "stable"))
+        raw_confidence = growth.get(
+            "confidence", od.get("confidence", od.get("confidence_score", 50))
+        )
+        confidence = _normalise_confidence(raw_confidence)
+
+        classification = growth.get(
+            "prediction", od.get("prediction", od.get("growth_classification", "stable"))
+        )
         if classification not in EvidencePackage.VALID_CLASSIFICATIONS:
             classification = "stable"
 
         return round(confidence, 2), classification
 
-    # ── derived metrics ───────────────────────────────────────
-
     @staticmethod
     def _compute_data_quality(
-        observations: Sequence[Observation],
-        features: List[Feature],
+        observations: Sequence[Observation], features: List[Feature]
     ) -> float:
-        """Heuristic data-quality score (0–100)."""
-        score = 50.0  # baseline
-
+        score = 50.0
         if not observations:
             return score
-
-        # observation count bonus (up to +20)
-        n_obs = len(observations)
-        score += min(n_obs / 5, 20)
-
-        # low cloud cover bonus (up to +15)
-        cloud_vals = [
-            o.cloud_cover_percent
-            for o in observations
-            if o.cloud_cover_percent is not None
-        ]
+        score += min(len(observations) / 5, 20)
+        cloud_vals = [o.cloud_cover_percent for o in observations if o.cloud_cover_percent is not None]
         if cloud_vals:
-            avg_cloud = sum(cloud_vals) / len(cloud_vals)
-            score += max(0, 15 - avg_cloud / 5)
-
-        # feature richness bonus (up to +15)
+            score += max(0, 15 - (sum(cloud_vals) / len(cloud_vals)) / 5)
         score += min(len(features) * 2, 15)
-
         return round(min(score, 100.0), 2)
 
     @staticmethod
     def _derive_overall_status(
-        verification_results: List[VerificationResult],
-        confidence: float,
+        verification_results: List[VerificationResult], confidence: float
     ) -> str:
-        """Derive overall package status from verification + confidence."""
         critical = sum(1 for v in verification_results if v.status == "critical")
         flags = sum(1 for v in verification_results if v.status == "flag")
-
         if critical > 0:
             return "FAIL"
         if flags > 0 or confidence < 60:
@@ -609,7 +446,6 @@ class PackageAssemblyService:
         confidence: float,
         verification_results: List[VerificationResult],
     ) -> str:
-        """Generate a free-text executive summary."""
         n_flags = sum(1 for v in verification_results if v.status != "pass")
         flag_text = (
             f"{n_flags} verification flag(s) require attention."
@@ -617,17 +453,12 @@ class PackageAssemblyService:
             else "No verification flags were raised."
         )
         return (
-            f"Analysis of project '{project_name}' indicates a "
-            f"'{classification}' classification with {confidence:.1f}% "
-            f"confidence. {flag_text}"
+            f"Analysis of project '{project_name}' indicates a '{classification}' "
+            f"classification with {confidence:.1f}% confidence. {flag_text}"
         )
 
 
-# ── module-level helpers ──────────────────────────────────────
-
-
 def _find_job(jobs: Sequence[Job], operation_type: str) -> Optional[Job]:
-    """Return the *last* job matching *operation_type* (most recent)."""
     match: Optional[Job] = None
     for job in jobs:
         if job.operation_type == operation_type:
@@ -636,5 +467,13 @@ def _find_job(jobs: Sequence[Job], operation_type: str) -> Optional[Job]:
 
 
 def _parse_date(value: str) -> date:
-    """Parse an ISO date string to :class:`datetime.date`."""
     return date.fromisoformat(value)
+
+
+def _normalise_confidence(value: Any) -> float:
+    if not isinstance(value, (int, float)):
+        return 50.0
+    confidence = float(value)
+    if confidence <= 1.0:
+        confidence *= 100.0
+    return max(0.0, min(100.0, confidence))
