@@ -1,0 +1,68 @@
+/* ═══════════════════════════════════════════════════
+   GeoMRV — Global Styles (dark satellite theme)
+   ═══════════════════════════════════════════════════ */
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.35);
+}
+
+/* ── Selection ── */
+::selection {
+  background: rgba(34, 197, 94, 0.3);
+}
+
+/* ── Links ── */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ── Leaflet overrides ── */
+.leaflet-container {
+  font-family: inherit;
+  border-radius: 12px;
+  background: #0f1117;
+}
+
+.leaflet-pane {
+  z-index: 1;
+}
+
+.leaflet-control-attribution {
+  background: rgba(15, 17, 23, 0.75) !important;
+  color: #94a3b8 !important;
+  font-size: 0.65rem !important;
+  border-radius: 4px !important;
+}
+
+.leaflet-control-attribution a {
+  color: #22c55e !important;
+}
+
+/* ── Chart.js canvas dark mode ── */
+canvas {
+  border-radius: 8px;
+}
+
+/* ── Smooth page transitions ── */
+.MuiContainer-root {
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
